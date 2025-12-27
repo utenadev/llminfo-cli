@@ -112,15 +112,20 @@ OpenRouter  google/gemini-1.5-flash:free       1M         $0.00
 ## Development
 
 ```bash
-# Clone the repository
+# Clone repository
 git clone https://github.com/yourusername/llminfo-cli.git
 cd llminfo-cli
 
 # Install development dependencies
 pip install -e ".[dev]"
 
-# Run tests
+# Run unit tests
 pytest
+
+# Run integration tests (requires API key)
+# Install dotenvx first: curl -fsSL https://dotenvx.sh | sh
+# Encrypt your .env.test: dotenvx encrypt -f .env.test
+# Then run: dotenvx run -f .env.test -- pytest -m integration
 
 # Lint code
 ruff check .
@@ -131,6 +136,13 @@ ruff format .
 # Type check
 mypy llminfo_cli
 ```
+
+## Testing
+
+- **Unit tests**: Mocked API responses, no API key required
+- **Integration tests**: Real API calls, require valid OpenRouter API key
+
+See `tests/INTEGRATION.md` for integration test setup instructions.
 
 ## License
 

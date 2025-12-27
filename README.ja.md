@@ -119,8 +119,13 @@ cd llminfo-cli
 # 開発依存関係をインストール
 pip install -e ".[dev]"
 
-# テスト実行
+# 単体テスト実行
 pytest
+
+# インテグレーションテスト実行（API キーが必要）
+# dotenvx をインストール: curl -fsSL https://dotenvx.sh | sh
+# .env.test を暗号化: dotenvx encrypt -f .env.test
+# 以下で実行: dotenvx run -f .env.test -- pytest -m integration
 
 # リントチェック
 ruff check .
@@ -131,6 +136,13 @@ ruff format .
 # 型チェック
 mypy llminfo_cli
 ```
+
+## テスト
+
+- **単体テスト**: モックされた API レスポンスを使用、API キー不要
+- **インテグレーションテスト**: 実際の API を呼び出し、有効な OpenRouter API キーが必要
+
+インテグレーションテストのセットアップ手順は `tests/INTEGRATION.md` を参照してください。
 
 ## ライセンス
 

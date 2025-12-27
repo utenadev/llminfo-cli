@@ -12,8 +12,8 @@ Integration tests require actual API keys. To run these tests:
    # Add your API key
    echo "OPENROUTER_API_KEY=your-actual-api-key" > .env.test
 
-   # Encrypt the file
-   dotenvx encrypt .env.test
+   # Encrypt file (use -f flag for custom filename)
+   dotenvx encrypt -f .env.test
    ```
 
 3. Run integration tests:
@@ -21,4 +21,4 @@ Integration tests require actual API keys. To run these tests:
    dotenvx run -f .env.test -- pytest -m integration
    ```
 
-Note: The .env.test file should be added to .gitignore and not committed to the repository.
+Note: The .env.test file should be added to .gitignore and not committed to the repository. The encryption key (.env.keys) should also not be committed.
