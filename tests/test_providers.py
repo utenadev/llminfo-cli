@@ -62,8 +62,7 @@ async def test_openrouter_get_credits():
     mock_response_data = {
         "data": {
             "total_credits": 100.0,
-            "usage": 25.5,
-            "remaining": 74.5,
+            "total_usage": 25.5,
         }
     }
 
