@@ -57,10 +57,13 @@ class OpenRouterProvider(Provider):
             response.raise_for_status()
             data = response.json()["data"]
 
+            total_credits = data.get("total_credits", 0.0)
+            total_usage = data.get("total_usage", 0.0)
+
             return CreditInfo(
-                total_credits=data.get("total_credits", 0.0),
-                usage=data.get("usage", 0.0),
-                remaining=data.get("remaining", 0.0),
+                total_credits=total_credits,
+                usage=total_usage,
+                remaining=total_credits - total_usage,
             )
 
     @property
