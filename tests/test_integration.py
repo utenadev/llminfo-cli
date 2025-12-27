@@ -20,7 +20,12 @@ async def test_openrouter_get_models_real():
     models = await provider.get_models()
 
     assert len(models) > 0
-    assert any(m.is_free for m in models)
+    free_models = [m for m in models if m.is_free]
+    assert len(free_models) > 0
+
+    print(f"\nTotal models: {len(models)}")
+    print(f"Free models: {len(free_models)}")
+    print(f"First free model: {free_models[0].id}")
 
 
 @pytest.mark.integration
@@ -39,3 +44,7 @@ async def test_openrouter_get_credits_real():
     assert credits.total_credits >= 0
     assert credits.usage >= 0
     assert credits.remaining >= 0
+
+    print(f"\nTotal credits: ${credits.total_credits:.2f}")
+    print(f"Usage: ${credits.usage:.2f}")
+    print(f"Remaining: ${credits.remaining:.2f}")
