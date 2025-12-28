@@ -86,6 +86,7 @@ def credits(
 def models(
     provider: Optional[str] = typer.Option(None, "--provider", help="Provider name"),
     json_output: bool = typer.Option(False, "--json", help="Output in JSON format"),
+    force: bool = typer.Option(False, "--force", help="Force refresh from API (ignore cache)"),
 ):
     """List models from all or specified providers"""
 
@@ -93,13 +94,13 @@ def models(
         try:
             if provider:
                 provider_instance = get_provider(provider)
-                models = await provider_instance.get_models()
+                models = await provider_instance.get_models(use_cache=not force)
                 models_with_provider = [(provider_instance.provider_name, m) for m in models]
             else:
                 providers = get_providers()
                 all_models = []
                 for provider_name, provider_instance in providers.items():
-                    models = await provider_instance.get_models()
+                    models = await provider_instance.get_models(use_cache=not force)
                     all_models.extend([(provider_instance.provider_name, m) for m in models])
                 models_with_provider = all_models
 

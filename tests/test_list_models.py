@@ -28,7 +28,7 @@ async def test_list_models_single_provider():
 
     with patch("httpx.AsyncClient", return_value=mock_client):
         provider = get_provider("groq", api_key="test_key")
-        models = await provider.get_models()
+        models = await provider.get_models(use_cache=False)
 
         assert len(models) == 1
         assert models[0].id == "llama3-70b-8192"

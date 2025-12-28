@@ -54,6 +54,9 @@ htmlcov/
 # Plugin files
 plugin/*.yml
 
+# Cache
+.cache/
+
 # OS
 .DS_Store
 Thumbs.db

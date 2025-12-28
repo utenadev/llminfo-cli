@@ -127,7 +127,7 @@ async def test_generic_provider_get_models():
     mock_client.get.return_value = mock_response
 
     with patch("httpx.AsyncClient", return_value=mock_client):
-        models = await provider.get_models()
+        models = await provider.get_models(use_cache=False)
 
         assert len(models) == 2
         assert models[0].id == "llama3-70b-8192"

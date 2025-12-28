@@ -10,7 +10,7 @@ class Provider(ABC):
     """Abstract base class for all AI providers"""
 
     @abstractmethod
-    async def get_models(self) -> List[ModelInfo]:
+    async def get_models(self, use_cache: bool = True) -> List[ModelInfo]:
         """Fetch list of available models"""
         pass
 

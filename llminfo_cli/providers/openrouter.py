@@ -18,7 +18,7 @@ class OpenRouterProvider(Provider):
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or os.environ.get(self.API_KEY_ENV)
 
-    async def get_models(self) -> List[ModelInfo]:
+    async def get_models(self, use_cache: bool = True) -> List[ModelInfo]:
         """Fetch list of available models from OpenRouter"""
         if not self.api_key:
             raise ValueError(f"{self.API_KEY_ENV} environment variable not set")

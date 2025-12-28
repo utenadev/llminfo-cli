@@ -7,6 +7,7 @@ import httpx
 
 from .base import Provider
 from .parsers import OpenAICompatibleParser, OpenRouterParser, ResponseParser
+from ..cache import CacheManager
 from ..schemas import CreditInfo, ModelInfo
 
 
@@ -30,11 +31,17 @@ class GenericProvider(Provider):
         self.models_endpoint = models_endpoint
         self.parser = parser
         self.credits_endpoint = credits_endpoint
+        self.cache_manager = CacheManager()
 
-    async def get_models(self) -> List[ModelInfo]:
+    async def get_models(self, use_cache: bool = True) -> List[ModelInfo]:
         """Fetch list of available models from provider"""
         if not self.api_key:
             raise ValueError(f"{self.api_key_env} environment variable not set")
+
+        if use_cache:
+            cached_models = self.cache_manager.get(self.provider_name_value)
+            if cached_models is not None:
+                return cached_models
 
         async with httpx.AsyncClient() as client:
             response = await client.get(
@@ -45,7 +52,11 @@ class GenericProvider(Provider):
             response.raise_for_status()
             data = response.json()
 
-            return self.parser.parse_models(data)
+            models = self.parser.parse_models(data)
+
+        self.cache_manager.set(self.provider_name_value, models)
+
+        return models
 
     async def get_credits(self) -> Optional[CreditInfo]:
         """Fetch credit information from provider"""
