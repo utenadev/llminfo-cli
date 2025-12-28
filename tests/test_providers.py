@@ -88,6 +88,7 @@ async def test_openrouter_get_credits():
     with patch("httpx.AsyncClient", return_value=mock_client):
         credits = await provider.get_credits()
 
+        assert credits is not None
         assert credits.total_credits == 100.0
         assert credits.usage == 25.5
         assert credits.remaining == 74.5
