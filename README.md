@@ -25,6 +25,24 @@ export MISTRAL_API_KEY="your-mistral-api-key"    # optional
 
 ## Usage
 
+### List Models
+
+List models from all or specified providers.
+
+```bash
+# List models from all providers
+llminfo list models
+
+# List models from a specific provider
+llminfo list models --provider openrouter
+
+# Output in JSON format
+llminfo list models --json
+
+# Force refresh from API (ignore cache)
+llminfo list models --force
+```
+
 ### Check Credits
 
 Display credit balance for the specified provider.
@@ -68,85 +86,6 @@ providers:
 ```
 
 See `SPEC.md` for detailed provider addition criteria.
-
-### List Models
-
-List models from all or specified providers.
-
-```bash
-# List models from all providers
-llminfo list models
-
-# List models from a specific provider
-llminfo list models --provider openrouter
-
-# Output in JSON format
-llminfo list models --json
-```
-
-### Test and Import Providers
-
-Test a new provider configuration and import it into `providers.yml`.
-
-```bash
-# Test a provider configuration
-llminfo test-provider plugin/new-provider.yml --api-key your-api-key
-
-# Test and import (add to providers.yml)
-llminfo import-provider plugin/new-provider.yml --api-key your-api-key
-```
-
-### Provider Configuration
-
-Providers are configured in `providers.yml`. OpenAI-compatible providers can be added with just a YAML configuration:
-
-```yaml
-providers:
-  groq:
-    name: "groq"
-    base_url: "https://api.groq.com/openai/v1"
-    api_key_env: "GROQ_API_KEY"
-    models_endpoint: "/models"
-    parser: "openai_compatible"
-    credits_endpoint: null
-```
-
-See `SPEC.md` for detailed provider addition criteria.
-
-### Select Best Free Model
-
-Selects the best free model suitable for AgentCodingTool usage.
-
-```bash
-llminfo best-free
-
-# Select from a specific provider
-llminfo best-free --provider openrouter
-
-# Output in JSON format
-llminfo best-free --json
-```
-
-### Check Credits
-
-Display credit balance for OpenRouter.
-
-```bash
-llminfo credits openrouter
-
-# Output in JSON format
-llminfo credits openrouter --json
-```
-
-### List All Models
-
-```bash
-# List all models from all providers
-llminfo list models
-
-# List models from a specific provider
-llminfo list models --provider groq
-```
 
 ## Output Formats
 

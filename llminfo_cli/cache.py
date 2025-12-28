@@ -54,4 +54,7 @@ class CacheManager:
         """Invalidate cache for provider"""
         cache_file = self._get_cache_file(provider_name)
         if cache_file.exists():
-            cache_file.unlink()
+            try:
+                cache_file.unlink()
+            except OSError:
+                pass
