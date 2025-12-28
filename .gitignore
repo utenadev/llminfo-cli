@@ -36,6 +36,9 @@ ENV/
 *~
 .my/
 
+# Debug scripts
+debug_*.py
+
 # Testing
 .pytest_cache/
 .coverage
