@@ -38,7 +38,6 @@ class OpenRouterProvider(Provider):
                     name=m["name"],
                     context_length=m.get("context_length"),
                     pricing=m.get("pricing"),
-                    is_free=":free" in m["id"],
                 )
                 for m in data
             ]

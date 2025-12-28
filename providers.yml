@@ -1,0 +1,42 @@
+# Provider Configuration for llminfo-cli
+#
+# Criteria for configuration-based providers (OpenAI-compatible):
+# 1. Base URL + /models endpoint for model listing
+# 2. API key authentication: Authorization: Bearer <token>
+# 3. Response structure: {"data": [...]} or simple array
+# 4. Standard HTTP status codes (200, 401, 429)
+#
+# If any of these criteria are not met, implement a custom provider class.
+
+providers:
+  groq:
+    name: "groq"
+    base_url: "https://api.groq.com/openai/v1"
+    api_key_env: "GROQ_API_KEY"
+    models_endpoint: "/models"
+    parser: "openai_compatible"
+    credits_endpoint: null
+
+  cerebras:
+    name: "cerebras"
+    base_url: "https://api.cerebras.ai/v1"
+    api_key_env: "CEREBRAS_API_KEY"
+    models_endpoint: "/models"
+    parser: "openai_compatible"
+    credits_endpoint: null
+
+  mistral:
+    name: "mistral"
+    base_url: "https://api.mistral.ai/v1"
+    api_key_env: "MISTRAL_API_KEY"
+    models_endpoint: "/models"
+    parser: "openai_compatible"
+    credits_endpoint: null
+
+  openrouter:
+    name: "openrouter"
+    base_url: "https://openrouter.ai/api/v1"
+    api_key_env: "OPENROUTER_API_KEY"
+    models_endpoint: "/models"
+    parser: "openrouter"
+    credits_endpoint: "/credits"

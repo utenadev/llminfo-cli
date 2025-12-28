@@ -48,6 +48,9 @@ htmlcov/
 .env.keys
 .env.test
 
+# Plugin files
+plugin/*.yml
+
 # OS
 .DS_Store
 Thumbs.db

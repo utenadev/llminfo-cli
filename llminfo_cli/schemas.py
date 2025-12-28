@@ -10,7 +10,6 @@ class ModelInfo(BaseModel):
     name: str = Field(..., description="Human-readable model name")
     context_length: int | None = Field(None, description="Context window size")
     pricing: dict | None = Field(None, description="Pricing information")
-    is_free: bool = Field(default=False, description="Free model flag")
 
 
 class CreditInfo(BaseModel):

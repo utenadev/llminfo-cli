@@ -20,12 +20,11 @@ async def test_openrouter_get_models_real():
     models = await provider.get_models()
 
     assert len(models) > 0
-    free_models = [m for m in models if m.is_free]
-    assert len(free_models) > 0
 
     print(f"\nTotal models: {len(models)}")
-    print(f"Free models: {len(free_models)}")
-    print(f"First free model: {free_models[0].id}")
+    print("First 3 models:")
+    for model in models[:3]:
+        print(f"  - {model.id} ({model.name})")
 
 
 @pytest.mark.integration
