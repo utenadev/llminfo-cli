@@ -21,18 +21,49 @@ export MISTRAL_API_KEY="your-mistral-api-key"    # optional
 
 ## Usage
 
-### List Free Models
+### Check Credits
+
+Display credit balance for the specified provider.
 
 ```bash
-# List free models from all providers
-llminfo list free
+# Check credits for OpenRouter
+llminfo credits --provider openrouter
 
-# List free models from a specific provider
-llminfo list free --provider openrouter
+# Check credits for Groq (not supported)
+llminfo credits --provider groq
 
 # Output in JSON format
-llminfo list free --json
+llminfo credits --provider openrouter --json
 ```
+
+### Test and Import Providers
+
+Test a new provider configuration and import it into `providers.yml`.
+
+```bash
+# Test a provider configuration
+llminfo test-provider plugin/new-provider.yml --api-key your-api-key
+
+# Test and import (add to providers.yml)
+llminfo import-provider plugin/new-provider.yml --api-key your-api-key
+```
+
+### Provider Configuration
+
+Providers are configured in `providers.yml`. OpenAI-compatible providers can be added with just a YAML configuration:
+
+```yaml
+providers:
+  groq:
+    name: "groq"
+    base_url: "https://api.groq.com/openai/v1"
+    api_key_env: "GROQ_API_KEY"
+    models_endpoint: "/models"
+    parser: "openai_compatible"
+    credits_endpoint: null
+```
+
+See `SPEC.md` for detailed provider addition criteria.
 
 ### Select Best Free Model
 
@@ -74,29 +105,18 @@ llminfo list models --provider groq
 ### Table Format (Default)
 
 ```
-Provider    Model ID                           Context    Price (Prompt/1M)
---------    --------------------------------        -------    -----------------
-OpenRouter  openai/gpt-4o-mini:free           128K       $0.00
-OpenRouter  google/gemini-1.5-flash:free       1M         $0.00
+Total Credits: $15.00
+Usage: $2.67
+Remaining: $12.33
 ```
 
 ### JSON Format
 
 ```json
 {
-  "provider": "openrouter",
-  "models": [
-    {
-      "id": "openai/gpt-4o-mini:free",
-      "name": "GPT-4o Mini",
-      "context_length": 128000,
-      "pricing": {
-        "prompt": "0.00015",
-        "completion": "0.0006"
-      },
-      "is_free": true
-    }
-  ]
+  "total_credits": 15.0,
+  "usage": 2.66625653,
+  "remaining": 12.33374347
 }
 ```
 
@@ -113,19 +133,22 @@ OpenRouter  google/gemini-1.5-flash:free       1M         $0.00
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/llminfo-cli.git
+git clone https://github.com/utenadev/llminfo-cli.git
 cd llminfo-cli
 
 # Install development dependencies
 pip install -e ".[dev]"
 
-# Run unit tests
+# Run all tests
 pytest
 
 # Run integration tests (requires API key)
 # Install dotenvx first: curl -fsSL https://dotenvx.sh | sh
 # Encrypt your .env.test: dotenvx encrypt -f .env.test
 # Then run: dotenvx run -f .env.test -- pytest -m integration
+
+# Test a new provider plugin
+llminfo test-provider plugin/new-provider.yml --api-key your-key
 
 # Lint code
 ruff check .

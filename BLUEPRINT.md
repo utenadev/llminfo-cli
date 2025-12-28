@@ -16,12 +16,17 @@
 - **pydantic** - データバリデーション
   - APIレスポンスのバリデーション
   - 型安全なデータモデル
+- **pyyaml** - 設定ファイル管理
+  - プロバイダー設定の読み込み
+  - プラグインファイルのパース
 
 ### 開発ライブラリ
 - **pytest** - テストフレームワーク
 - **pytest-asyncio** - 非同期テスト用
+- **pytest-mock** - モックサポート
 - **ruff** - リンター・フォーマッター
 - **mypy** - 静的型チェッカー
+- **types-PyYAML** - PyYAMLの型スタブ
 
 ## プロジェクト構成
 
@@ -30,19 +35,19 @@ llminfo-cli/
 ├── llminfo_cli/
 │   ├── __init__.py
 │   ├── main.py              # CLIエントリーポイント
-│   ├── models.py             # モデル情報管理
 │   ├── providers/
-│   │   ├── __init__.py
+│   │   ├── __init__.py      # プロバイダーファクトリー
 │   │   ├── base.py          # プロバイダーベースクラス
-│   │   ├── openrouter.py    # OpenRouter実装
-│   │   ├── groq.py          # Groq実装
-│   │   ├── cerebras.py      # Cerebras実装
-│   │   └── mistral.py      # Mistral実装
-│   └── schemas.py            # データモデル定義
+│   │   ├── generic.py       # 汎用プロバイダー
+│   │   ├── parsers.py       # レスポンスパーサー（Strategy Pattern）
+│   │   └── openrouter.py    # OpenRouter実装
+│   └── schemas.py          # データモデル定義
+├── plugin/                 # プロバイダープラグイン（.gitignore）
 ├── tests/
 │   ├── __init__.py
 │   ├── test_providers.py
-│   └── test_models.py
+│   └── test_integration.py
+├── providers.yml           # プロバイダー設定
 ├── pyproject.toml
 ├── README.md
 └── .env.example
@@ -65,7 +70,11 @@ class ModelInfo(BaseModel):
     name: str
     context_length: Optional[int] = None
     pricing: Optional[dict] = None
-    is_free: bool = False
+
+class CreditInfo(BaseModel):
+    total_credits: float
+    usage: float
+    remaining: float
 
 class Provider(ABC):
     @abstractmethod
@@ -74,7 +83,7 @@ class Provider(ABC):
         pass
 
     @abstractmethod
-    async def get_credits(self) -> Optional[dict]:
+    async def get_credits(self) -> Optional[CreditInfo]:
         """クレジット情報を取得（存在する場合）"""
         pass
 
@@ -85,14 +94,132 @@ class Provider(ABC):
         pass
 ```
 
-#### OpenRouter実装
+#### ResponseParser Strategy Pattern
+```python
+# providers/parsers.py
+
+from abc import ABC, abstractmethod
+from typing import List, Optional
+
+class ResponseParser(ABC):
+    @abstractmethod
+    def parse_models(self, response: dict) -> List[ModelInfo]:
+        pass
+
+    @abstractmethod
+    def parse_credits(self, response: dict) -> Optional[CreditInfo]:
+        pass
+
+class OpenAICompatibleParser(ResponseParser):
+    """OpenAI互換API用パーサー"""
+    def parse_models(self, response: dict) -> List[ModelInfo]:
+        data = response.get("data", [])
+        return [
+            ModelInfo(
+                id=m.get("id", ""),
+                name=m.get("id", ""),
+                context_length=m.get("context_length"),
+                pricing=m.get("pricing"),
+            )
+            for m in data
+        ]
+
+class OpenRouterParser(ResponseParser):
+    """OpenRouter専用パーサー"""
+    def parse_models(self, response: dict) -> List[ModelInfo]:
+        data = response.get("data", [])
+        return [
+            ModelInfo(
+                id=m["id"],
+                name=m["name"],
+                context_length=m.get("context_length"),
+                pricing=m.get("pricing"),
+            )
+            for m in data
+        ]
+
+    def parse_credits(self, response: dict) -> Optional[CreditInfo]:
+        data = response.get("data", {})
+        total_credits = data.get("total_credits", 0.0)
+        total_usage = data.get("total_usage", 0.0)
+
+        return CreditInfo(
+            total_credits=total_credits,
+            usage=total_usage,
+            remaining=total_credits - total_usage,
+        )
+```
+
+#### 汎用プロバイダー
+```python
+# providers/generic.py
+
+class GenericProvider(Provider):
+    """設定ファイルベースの汎用プロバイダー"""
+
+    def __init__(
+        self,
+        provider_name: str,
+        base_url: str,
+        api_key_env: str,
+        models_endpoint: str,
+        parser: ResponseParser,
+        api_key: Optional[str] = None,
+        credits_endpoint: Optional[str] = None,
+    ):
+        self.provider_name_value = provider_name
+        self.base_url = base_url
+        self.api_key_env = api_key_env
+        self.api_key = api_key or os.environ.get(api_key_env)
+        self.models_endpoint = models_endpoint
+        self.parser = parser
+        self.credits_endpoint = credits_endpoint
+
+    async def get_models(self) -> List[ModelInfo]:
+        if not self.api_key:
+            raise ValueError(f"{self.api_key_env} environment variable not set")
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{self.base_url}{self.models_endpoint}",
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                timeout=30.0,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            return self.parser.parse_models(data)
+
+    async def get_credits(self) -> Optional[CreditInfo]:
+        if not self.api_key:
+            raise ValueError(f"{self.api_key_env} environment variable not set")
+
+        if not self.credits_endpoint:
+            return None
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{self.base_url}{self.credits_endpoint}",
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                timeout=30.0,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            return self.parser.parse_credits(data)
+
+    @property
+    def provider_name(self) -> str:
+        return self.provider_name_value
+```
+
+#### OpenRouter実装（GenericProvider使用）
 ```python
 # providers/openrouter.py
 
-import httpx
-from .base import Provider, ModelInfo
-
 class OpenRouterProvider(Provider):
+    """OpenRouter.ai プロバイダー実装"""
+
     BASE_URL = "https://openrouter.ai/api/v1"
     API_KEY_ENV = "OPENROUTER_API_KEY"
 
@@ -100,11 +227,16 @@ class OpenRouterProvider(Provider):
         self.api_key = api_key or os.environ.get(self.API_KEY_ENV)
 
     async def get_models(self) -> List[ModelInfo]:
+        if not self.api_key:
+            raise ValueError(f"{self.API_KEY_ENV} environment variable not set")
+
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{self.BASE_URL}/models",
-                headers={"Authorization": f"Bearer {self.api_key}"}
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                timeout=30.0,
             )
+            response.raise_for_status()
             data = response.json()["data"]
 
             return [
@@ -113,63 +245,57 @@ class OpenRouterProvider(Provider):
                     name=m["name"],
                     context_length=m.get("context_length"),
                     pricing=m.get("pricing"),
-                    is_free=":free" in m["id"]
                 )
                 for m in data
             ]
 
-    async def get_credits(self) -> Optional[dict]:
+    async def get_credits(self) -> Optional[CreditInfo]:
+        if not self.api_key:
+            raise ValueError(f"{self.API_KEY_ENV} environment variable not set")
+
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{self.BASE_URL}/credits",
-                headers={"Authorization": f"Bearer {self.api_key}"}
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                timeout=30.0,
             )
-            return response.json()["data"]
+            response.raise_for_status()
+            data = response.json()["data"]
+
+            total_credits = data.get("total_credits", 0.0)
+            total_usage = data.get("total_usage", 0.0)
+
+            return CreditInfo(
+                total_credits=total_credits,
+                usage=total_usage,
+                remaining=total_credits - total_usage,
+            )
 
     @property
     def provider_name(self) -> str:
         return "openrouter"
 ```
 
-#### Groq/Cerebras/Mistral実装
-```python
-# providers/groq.py, cerebras.py, mistral.py
+#### プロバイダー設定ファイル
+```yaml
+# providers.yml
 
-import httpx
-from .base import Provider, ModelInfo
+providers:
+  groq:
+    name: "groq"
+    base_url: "https://api.groq.com/openai/v1"
+    api_key_env: "GROQ_API_KEY"
+    models_endpoint: "/models"
+    parser: "openai_compatible"
+    credits_endpoint: null
 
-class GroqProvider(Provider):
-    BASE_URL = "https://api.groq.com/openai/v1"
-    API_KEY_ENV = "GROQ_API_KEY"
-
-    def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or os.environ.get(self.API_KEY_ENV)
-
-    async def get_models(self) -> List[ModelInfo]:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{self.BASE_URL}/models",
-                headers={"Authorization": f"Bearer {self.api_key}"}
-            )
-            data = response.json()["data"]
-
-            return [
-                ModelInfo(
-                    id=m["id"],
-                    name=m["id"],  # Groqはnameフィールドがない
-                    context_length=m.get("context_window"),
-                    is_free=False  # Groqは有料のみ
-                )
-                for m in data
-            ]
-
-    async def get_credits(self) -> Optional[dict]:
-        # Groq/Cerebras/MistralはクレジットAPIがない
-        return None
-
-    @property
-    def provider_name(self) -> str:
-        return "groq"
+  openrouter:
+    name: "openrouter"
+    base_url: "https://openrouter.ai/api/v1"
+    api_key_env: "OPENROUTER_API_KEY"
+    models_endpoint: "/models"
+    parser: "openrouter"
+    credits_endpoint: "/credits"
 ```
 
 ### 2. CLIコマンド構成
@@ -178,102 +304,51 @@ class GroqProvider(Provider):
 ```bash
 # ルートコマンド
 llminfo                    # ヘルプ表示
-llminfo list                # listサブコマンド
-llminfo list free            # Freeモデル一覧
-llminfo list models          # 全モデル一覧
-llminfo best-free            # 最適Freeモデル選択
 llminfo credits              # クレジット確認
+llminfo test-provider        # プロバイダーテスト
+llminfo import-provider      # プロバイダーインポート
 
 # グローバルオプション
---provider <provider>    # プロバイダー指定
---json                  # JSON出力
---table                 # テーブル出力（デフォルト）
---output <file>         # ファイルへ出力
-```
-
-#### listサブコマンド
-```bash
-llminfo list free                    # 全プロバイダーのfreeモデル
-llminfo list free --provider openrouter  # 特定プロバイダーのみ
-llminfo list free --json            # JSON形式で出力
-llminfo list free --output models.json  # ファイルへ保存
-```
-
-#### best-freeサブコマンド
-```bash
-llminfo best-free                    # 最適freeモデルを1つ選択
-llminfo best-free --provider openrouter  # 特定プロバイダー
-llminfo best-free --json              # JSON形式で出力（モデルIDのみ）
+--json                      # JSON出力
+--provider <provider>       # プロバイダー指定
 ```
 
 #### creditsサブコマンド
 ```bash
-llminfo credits openrouter          # OpenRouterのクレジット
-llminfo credits --json              # JSON形式で出力
+llminfo credits --provider openrouter  # OpenRouterのクレジット
+llminfo credits --json               # JSON形式で出力
 ```
 
-### 3. モデル選択ロジック
-
-#### AgentCodingTool用最適モデル選択
-```python
-# 選択基準（重要度順）
-1. コンテキスト長（context_length） - 大きいを優先
-2. 価格（pricing.prompt/completion） - 安いを優先
-3. サポートするパラメーター（supported_parameters）- function_calling, tools等
-4. 推論能力（reasoning_tokensサポート）
-
-def select_best_free_model(models: List[ModelInfo]) -> ModelInfo:
-    """
-    AgentCodingToolでの利用に適した最適なFreeモデルを選択
-
-    優先順位：
-    1. context_length > 32,000（長いコード生成）
-    2. function_calling, toolsをサポート
-    3. 低価格
-    """
-    candidates = [m for m in models if m.is_free]
-
-    # 基準1: コンテキスト長
-    candidates = [m for m in candidates if (m.context_length or 0) > 32000]
-
-    # 基準2: 低価格
-    if candidates:
-        candidates.sort(key=lambda m: float(m.pricing.get("prompt", "999999")) if m.pricing else 999999)
-
-    return candidates[0] if candidates else models[0]
+#### test-providerサブコマンド
+```bash
+llminfo test-provider plugin/new-provider.yml  # プラグイン設定をテスト
+llminfo test-provider plugin/new-provider.yml --api-key key  # APIキー指定
 ```
 
-### 4. 出力形式
+#### import-providerサブコマンド
+```bash
+llminfo import-provider plugin/new-provider.yml  # テスト成功後にproviders.ymlへ追加
+```
+
+### 3. 出力形式
 
 #### テーブル形式（デフォルト）
 ```
-Provider    Model ID                           Context    Price (Prompt/1M)
---------    --------------------------------        -------    -----------------
-OpenRouter  openai/gpt-4o-mini:free           128K       $0.00
-OpenRouter  google/gemini-1.5-flash:free       1M         $0.00
-Groq       llama-3.1-8b-instant              131K       $0.05
+Total Credits: $15.00
+Usage: $2.67
+Remaining: $12.33
 ```
 
 #### JSON形式
 ```json
 {
-  "provider": "openrouter",
-  "models": [
-    {
-      "id": "openai/gpt-4o-mini:free",
-      "name": "GPT-4o Mini",
-      "context_length": 128000,
-      "pricing": {
-        "prompt": "0.00015",
-        "completion": "0.0006"
-      },
-      "is_free": true
-    }
-  ]
+  "total_credits": 15.0,
+  "usage": 2.66625653,
+  "remaining": 12.33374347
 }
 ```
 
-### 5. エラーハンドリング
+### 4. エラーハンドリング
 
 #### APIリクエストエラー
 ```python
@@ -298,33 +373,44 @@ if not api_key:
     sys.exit(1)
 ```
 
-### 6. テスト戦略
+### 5. テスト戦略
 
 #### 単体テスト
 ```python
 # tests/test_providers.py
 
 import pytest
-from openrouter_cli.providers import OpenRouterProvider, GroqProvider
+from unittest.mock import AsyncMock, MagicMock, patch
+from llminfo_cli.providers import get_provider
 
 @pytest.mark.asyncio
 async def test_openrouter_get_models():
     provider = OpenRouterProvider(api_key="test_key")
-    # モックAPIレスポンスを使用
-    models = await provider.get_models()
-    assert len(models) > 0
-    assert any(m.is_free for m in models)
 
-@pytest.mark.asyncio
-async def test_select_best_model():
-    from openrouter_cli.models import select_best_free_model
-    # モックモデルデータ
-    models = [
-        ModelInfo(id="model1", name="Model 1", context_length=32000, is_free=True, pricing={"prompt": "0.01"}),
-        ModelInfo(id="model2", name="Model 2", context_length=131072, is_free=True, pricing={"prompt": "0.00"}),
-    ]
-    selected = select_best_free_model(models)
-    assert selected.id == "model2"  # context_lengthと価格で選択
+    mock_response_data = {
+        "data": [
+            {
+                "id": "openai/gpt-4o-mini",
+                "name": "GPT-4o Mini",
+                "context_length": 128000,
+                "pricing": {"prompt": "0.00015"},
+            },
+        ]
+    }
+
+    mock_response = MagicMock()
+    mock_response.json.return_value = mock_response_data
+    mock_response.raise_for_status = MagicMock()
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.get.return_value = mock_response
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        models = await provider.get_models()
+
+        assert len(models) == 1
+        assert models[0].id == "openai/gpt-4o-mini"
 ```
 
 #### 統合テスト
@@ -332,34 +418,38 @@ async def test_select_best_model():
 # tests/test_integration.py
 
 import pytest
-from openrouter_cli.main import app
+import os
 
-def test_list_free_command():
-    from typer.testing import CliRunner
-    runner = CliRunner()
-    result = runner.invoke(app, ["list", "free"])
-    assert result.exit_code == 0
-    assert "free" in result.stdout.lower()
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_openrouter_get_models_real():
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+
+    if not api_key:
+        pytest.skip("OPENROUTER_API_KEY not set in environment")
+
+    provider = OpenRouterProvider(api_key=api_key)
+    models = await provider.get_models()
+
+    assert len(models) > 0
 ```
 
-### 7. 配布設定
+### 6. 配布設定
 
 #### pyproject.toml
 ```toml
 [project]
 name = "llminfo-cli"
 version = "0.1.0"
-description = "OpenRouter.aiおよび関連AIプロバイダーのモデル情報取得CLIツール"
-authors = [
-    {name = "Your Name", email = "your.email@example.com"}
-]
+description = "CLI tool for LLM model information"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "typer>=0.9.0",
     "httpx>=0.25.0",
     "pydantic>=2.0.0",
-    "rich>=13.0.0",  # 美しいテーブル出力
+    "rich>=13.0.0",
+    "pyyaml>=6.0.0",
 ]
 
 [project.optional-dependencies]
@@ -367,8 +457,10 @@ dev = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.0.0",
+    "pytest-mock>=3.12.0",
     "ruff>=0.1.0",
     "mypy>=1.0.0",
+    "types-PyYAML>=6.0.0",
 ]
 
 [project.scripts]
@@ -381,50 +473,56 @@ target-version = "py311"
 [tool.mypy]
 python_version = "3.11"
 warn_return_any = true
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: marks tests as integration tests (requires API keys)"
+]
 ```
 
-### 8. 実装フェーズ
+### 7. 実装フェーズ
 
-#### Phase 1: 基盤整備
+#### Phase 1: 基盤整備（完了）
 1. プロジェクト構成の作成
 2. 基礎データモデルの実装
 3. 設定ファイルの作成（.env.example）
 
-#### Phase 2: プロバイダー実装
-1. OpenRouterプロバイダーの実装
-2. Groqプロバイダーの実装
-3. Cerebrasプロバイダーの実装
-4. Mistralプロバイダーの実装
+#### Phase 2: プロバイダー実装（完了）
+1. GenericProviderの実装
+2. ResponseParser Strategy Patternの実装
+3. OpenRouterプロバイダーの実装
+4. プロバイダー設定ファイル（providers.yml）の作成
 
-#### Phase 3: CLIコマンド実装
-1. listサブコマンドの実装
-2. best-freeコマンドの実装
-3. creditsコマンドの実装
-4. 出力フォーマットの整備
+#### Phase 3: プラグインシステム実装（完了）
+1. test-providerコマンドの実装
+2. import-providerコマンドの実装
+3. プラグインディレクトリの作成
 
-#### Phase 4: テスト
+#### Phase 4: テスト（完了）
 1. 単体テストの作成
 2. 統合テストの作成
 3. カバレッジの設定
 
-#### Phase 5: ドキュメンテーション
+#### Phase 5: ドキュメンテーション（完了）
 1. README.mdの作成
-2. .env.exampleの作成
-3. 使用例の追加
+2. SPEC.mdの作成
+3. BLUEPRINT.mdの作成
+4. 使用例の追加
 
-#### Phase 6: 配布準備
+#### Phase 6: 配布準備（完了）
 1. PyPIへの配布設定
-2. GitHub Actions CI/CDの設定
+2. GitHubリポジトリの作成
+3. MIT Licenseの追加
 
 ## 将来の拡張
 
 ### マイルストーン v1.1
 - [ ] 複数プロバイダーの料金比較機能
-- [ ] モデル詳細情報の表示（`ai-cli info <model_id>`）
+- [ ] モデル詳細情報の表示（`llminfo info <model_id>`）
 - [ ] モデルフィルタリング機能（`--filter "price<0.01"`）
 - [ ] 履歴管理（最近使用したモデルを保存）
 
 ### マイルストーン v1.2
 - [ ] インタラクティブモード（TUI）
 - [ ] モデル評価機能
-- [ ] カスタムプロバイダーの追加
+- [ ] カスタムパーサーのプラグイン対応
