@@ -25,6 +25,16 @@ export MISTRAL_API_KEY="your-mistral-api-key"    # 任意
 
 ## 使用方法
 
+### キャッシュ
+
+モデルリストはデフォルトで1時間キャッシュされます。キャッシュは `~/.cache/llminfo/` に保存されます。
+
+APIから強制的に新しいデータを取得してキャッシュを無視するには `--force` オプションを使用します：
+
+```bash
+llminfo list models --force
+```
+
 ### クレジット残高確認
 
 指定されたプロバイダーのクレジット残高を表示します。
@@ -184,6 +194,7 @@ mypy llminfo_cli
 - **型安全**: Python 型ヒントと Pydantic モデルで構築
 - **非同期 API 呼び出し**: より良いパフォーマンスのためのノンブロッキングリクエスト
 - **複数プロバイダー**: OpenRouter、Groq、Cerebras、Mistral をサポート
+- **キャッシング**: モデルリストを 1 時間キャッシュして API 呼び出しを削減
 
 ## ライセンス
 

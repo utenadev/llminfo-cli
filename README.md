@@ -43,6 +43,15 @@ llminfo list models --json
 llminfo list models --force
 ```
 
+## Caching
+
+Model lists are cached for 1 hour by default. Cache is stored in `~/.cache/llminfo/`.
+
+To force refresh from API and ignore cache:
+```bash
+llminfo list models --force
+```
+
 ### Check Credits
 
 Display credit balance for the specified provider.
@@ -187,6 +196,8 @@ See `tests/INTEGRATION.md` for integration test setup instructions.
 - **Type-safe**: Built with Python type hints and Pydantic models
 - **Async API calls**: Non-blocking requests for better performance
 - **Multiple providers**: OpenRouter, Groq, Cerebras, Mistral supported
+- **Caching**: 1-hour cache for model lists to reduce API calls
+- **Cache invalidation**: Use `--force` flag to bypass cache and fetch fresh data
 
 ## License
 

@@ -41,15 +41,21 @@ llminfo-cli/
 │   │   ├── generic.py       # 汎用プロバイダー
 │   │   ├── parsers.py       # レスポンスパーサー（Strategy Pattern）
 │   │   └── openrouter.py    # OpenRouter実装
+│   ├── cache.py             # キャッシュ管理
+│   ├── validators.py       # プロバイダー設定バリデーション
 │   └── schemas.py          # データモデル定義
-├── plugin/                 # プロバイダープラグイン（.gitignore）
 ├── tests/
 │   ├── __init__.py
 │   ├── test_providers.py
-│   └── test_integration.py
+│   ├── test_integration.py
+│   ├── test_list_models.py
+│   ├── test_cache.py
+│   └── test_cli_commands.py
 ├── providers.yml           # プロバイダー設定
+├── plugin/                 # プロバイダープラグイン（.gitignore）
 ├── pyproject.toml
 ├── README.md
+├── README.ja.md
 └── .env.example
 ```
 
