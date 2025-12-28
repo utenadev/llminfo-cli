@@ -2,6 +2,10 @@
 
 OpenRouter.ai および関連 AI プロバイダー（Groq、Cerebras、Mistral）の利用可能な LLM モデル情報を取得・検索する CLI ツール
 
+## リポジトリ
+
+https://github.com/utenadev/llminfo-cli
+
 ## インストール
 
 ```bash
@@ -21,83 +25,94 @@ export MISTRAL_API_KEY="your-mistral-api-key"    # 任意
 
 ## 使用方法
 
-### Free モデル一覧表示
-
-```bash
-# 全プロバイダーの Free モデルを一覧表示
-llminfo list free
-
-# 特定プロバイダーの Free モデルのみ
-llminfo list free --provider openrouter
-
-# JSON 形式で出力
-llminfo list free --json
-```
-
-### 最適 Free モデル選択
-
-AgentCodingTool での利用に適した最適な Free モデルを 1 つ選択します。
-
-```bash
-llminfo best-free
-
-# 特定プロバイダーから選択
-llminfo best-free --provider openrouter
-
-# JSON 形式で出力
-llminfo best-free --json
-```
-
 ### クレジット残高確認
 
-OpenRouter のクレジット残高を表示します。
+指定されたプロバイダーのクレジット残高を表示します。
 
 ```bash
-llminfo credits openrouter
+# OpenRouter のクレジットを確認
+llminfo credits --provider openrouter
+
+# Groq のクレジットを確認（未対応、エラーが返されます）
+llminfo credits --provider groq
 
 # JSON 形式で出力
-llminfo credits openrouter --json
+llminfo credits --provider openrouter --json
 ```
 
-### 全モデル一覧表示
+### プロバイダーのテストとインポート
+
+新しいプロバイダー設定をテストし、`providers.yml` にインポートします。
 
 ```bash
-# 全プロバイダーの全モデルを表示
-llminfo list models
+# プロバイダー設定をテスト
+llminfo test-provider plugin/new-provider.yml --api-key your-api-key
 
-# 特定プロバイダーのモデルのみ
-llminfo list models --provider groq
+# テストしてインポート（providers.yml に追加）
+llminfo import-provider plugin/new-provider.yml --api-key your-api-key
 ```
+
+### プロバイダー設定
+
+プロバイダーは `providers.yml` で設定されます。OpenAI 互換のプロバイダーは YAML 設定のみで追加できます：
+
+```yaml
+providers:
+  groq:
+    name: "groq"
+    base_url: "https://api.groq.com/openai/v1"
+    api_key_env: "GROQ_API_KEY"
+    models_endpoint: "/models"
+    parser: "openai_compatible"
+    credits_endpoint: null
+```
+
+詳細なプロバイダー追加基準については `SPEC.md` を参照してください。
 
 ## 出力形式
 
 ### テーブル形式（デフォルト）
 
 ```
-Provider    Model ID                           Context    Price (Prompt/1M)
---------    --------------------------------        -------    -----------------
-OpenRouter  openai/gpt-4o-mini:free           128K       $0.00
-OpenRouter  google/gemini-1.5-flash:free       1M         $0.00
+Total Credits: $15.00
+Usage: $2.67
+Remaining: $12.33
 ```
 
 ### JSON 形式
 
 ```json
 {
-  "provider": "openrouter",
-  "models": [
-    {
-      "id": "openai/gpt-4o-mini:free",
-      "name": "GPT-4o Mini",
-      "context_length": 128000,
-      "pricing": {
-        "prompt": "0.00015",
-        "completion": "0.0006"
-      },
-      "is_free": true
-    }
-  ]
+  "total_credits": 15.0,
+  "usage": 2.66625653,
+  "remaining": 12.33374347
 }
+```
+
+## 利用可能なコマンド
+
+### Credits
+
+指定されたプロバイダーのクレジット残高を表示します。現時点では OpenRouter のみがクレジット API をサポートしています。
+
+```bash
+llminfo credits --provider openrouter
+```
+
+### Test Provider
+
+永続的な設定に追加せず、プロバイダー設定をテストします。
+
+```bash
+llminfo test-provider plugin/new-provider.yml --api-key your-api-key
+```
+
+### Import Provider
+
+プロバイダー設定をテストし、`providers.yml` にインポートします。
+
+```bash
+llminfo import-provider plugin/new-provider.yml --api-key your-api-key
 ```
 
 ## 対応プロバイダー
@@ -113,19 +128,22 @@ OpenRouter  google/gemini-1.5-flash:free       1M         $0.00
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/yourusername/llminfo-cli.git
+git clone https://github.com/utenadev/llminfo-cli.git
 cd llminfo-cli
 
 # 開発依存関係をインストール
 pip install -e ".[dev]"
 
-# 単体テスト実行
+# 全テスト実行
 pytest
 
 # インテグレーションテスト実行（API キーが必要）
 # dotenvx をインストール: curl -fsSL https://dotenvx.sh | sh
 # .env.test を暗号化: dotenvx encrypt -f .env.test
 # 以下で実行: dotenvx run -f .env.test -- pytest -m integration
+
+# 新しいプロバイダープラグインをテスト
+llminfo test-provider plugin/new-provider.yml --api-key your-key
 
 # リントチェック
 ruff check .
@@ -140,9 +158,17 @@ mypy llminfo_cli
 ## テスト
 
 - **単体テスト**: モックされた API レスポンスを使用、API キー不要
-- **インテグレーションテスト**: 実際の API を呼び出し、有効な OpenRouter API キーが必要
+- **インテグレーションテスト**: 実際の API を呼び出し、有効な API キーが必要（OPENROUTER_API_KEY、GROQ_API_KEY など）
 
 インテグレーションテストのセットアップ手順は `tests/INTEGRATION.md` を参照してください。
+
+## 機能
+
+- **設定ベースのプロバイダー**: OpenAI 互換のプロバイダーを YAML 設定のみで追加
+- **プラグインシステム**: 新しいプロバイダーを安全にテストしてインポート
+- **型安全**: Python 型ヒントと Pydantic モデルで構築
+- **非同期 API 呼び出し**: より良いパフォーマンスのためのノンブロッキングリクエスト
+- **複数プロバイダー**: OpenRouter、Groq、Cerebras、Mistral をサポート
 
 ## ライセンス
 
