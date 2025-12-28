@@ -15,6 +15,7 @@ from rich.table import Table
 from llminfo_cli.providers import get_provider, get_providers
 from llminfo_cli.providers.parsers import OpenAICompatibleParser, OpenRouterParser, ResponseParser
 from llminfo_cli.providers.generic import GenericProvider
+from llminfo_cli.validators import validate_provider_config
 from llminfo_cli.schemas import ModelInfo
 
 app = typer.Typer()
@@ -170,12 +171,17 @@ def test_provider(
             with plugin_file.open() as f:
                 config = yaml.safe_load(f)
 
+            is_valid, error = validate_provider_config(config)
+            if not is_valid:
+                typer.echo(f"Configuration error: {error}", err=True)
+                sys.exit(1)
+
             provider = _create_provider_from_config(config, api_key=api_key)
 
             typer.echo(f"Testing provider: {config['name']}")
             typer.echo(f"Base URL: {config['base_url']}")
 
-            models = await provider.get_models()
+            models = await provider.get_models(use_cache=False)
 
             typer.echo(f"✓ Successfully retrieved {len(models)} models")
 
@@ -213,6 +219,11 @@ def import_provider(
             with plugin_file.open() as f:
                 config = yaml.safe_load(f)
 
+            is_valid, error = validate_provider_config(config)
+            if not is_valid:
+                typer.echo(f"Configuration error: {error}", err=True)
+                sys.exit(1)
+
             provider_name = config["name"]
 
             typer.echo(f"Testing provider: {provider_name}")
@@ -220,7 +231,7 @@ def import_provider(
 
             provider = _create_provider_from_config(config, api_key=api_key)
 
-            models = await provider.get_models()
+            models = await provider.get_models(use_cache=False)
 
             typer.echo(f"✓ Successfully retrieved {len(models)} models")
 
