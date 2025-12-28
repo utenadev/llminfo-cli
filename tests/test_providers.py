@@ -48,10 +48,21 @@ async def test_openrouter_get_models():
 @pytest.mark.asyncio
 async def test_openrouter_get_models_no_api_key():
     """Test error when API key is not set"""
-    provider = OpenRouterProvider(api_key=None)
+    import os
 
-    with pytest.raises(ValueError, match="OPENROUTER_API_KEY environment variable not set"):
-        await provider.get_models()
+    original_key = os.environ.get("OPENROUTER_API_KEY")
+
+    try:
+        if "OPENROUTER_API_KEY" in os.environ:
+            del os.environ["OPENROUTER_API_KEY"]
+
+        provider = OpenRouterProvider(api_key=None)
+
+        with pytest.raises(ValueError, match="OPENROUTER_API_KEY environment variable not set"):
+            await provider.get_models()
+    finally:
+        if original_key:
+            os.environ["OPENROUTER_API_KEY"] = original_key
 
 
 @pytest.mark.asyncio

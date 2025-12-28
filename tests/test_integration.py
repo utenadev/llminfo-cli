@@ -5,6 +5,7 @@ import os
 import pytest
 
 from llminfo_cli.providers.openrouter import OpenRouterProvider
+from llminfo_cli.providers import get_provider
 
 
 @pytest.mark.integration
@@ -47,3 +48,40 @@ async def test_openrouter_get_credits_real():
     print(f"\nTotal credits: ${credits.total_credits:.2f}")
     print(f"Usage: ${credits.usage:.2f}")
     print(f"Remaining: ${credits.remaining:.2f}")
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_groq_get_models_real():
+    """Test fetching models from actual Groq API"""
+    api_key = os.environ.get("GROQ_API_KEY")
+
+    if not api_key:
+        pytest.skip("GROQ_API_KEY not set in environment")
+
+    provider = get_provider("groq", api_key=api_key)
+    models = await provider.get_models()
+
+    assert len(models) > 0
+
+    print(f"\nTotal models: {len(models)}")
+    print("First 3 models:")
+    for model in models[:3]:
+        print(f"  - {model.id}")
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_groq_get_credits_real():
+    """Test that Groq provider returns None for credits (not supported)"""
+    api_key = os.environ.get("GROQ_API_KEY")
+
+    if not api_key:
+        pytest.skip("GROQ_API_KEY not set in environment")
+
+    provider = get_provider("groq", api_key=api_key)
+    credits = await provider.get_credits()
+
+    assert credits is None
+
+    print("\nGroq provider correctly returns None for credits (not supported)")
