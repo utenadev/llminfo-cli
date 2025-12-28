@@ -12,12 +12,14 @@ import yaml
 from rich.console import Console
 from rich.table import Table
 
-from llminfo_cli.providers import get_provider
+from llminfo_cli.providers import get_provider, get_providers
 from llminfo_cli.providers.parsers import OpenAICompatibleParser, OpenRouterParser, ResponseParser
 from llminfo_cli.providers.generic import GenericProvider
 from llminfo_cli.schemas import ModelInfo
 
 app = typer.Typer()
+list_app = typer.Typer(help="List models from providers")
+app.add_typer(list_app, name="list")
 console = Console()
 
 
@@ -29,16 +31,17 @@ def main(
     pass
 
 
-def format_models_table(models: list[ModelInfo]) -> Table:
+def format_models_table(models: list[tuple[str, ModelInfo]]) -> Table:
     """Format models as a rich table"""
     table = Table(title="Available Models")
+    table.add_column("Provider", style="magenta")
     table.add_column("Model ID", style="cyan")
     table.add_column("Name", style="green")
     table.add_column("Context", style="yellow")
 
-    for model in models:
+    for provider_name, model in models:
         context_str = f"{model.context_length:,}" if model.context_length else "N/A"
-        table.add_row(model.id, model.name, context_str)
+        table.add_row(provider_name, model.id, model.name, context_str)
 
     return table
 
@@ -65,6 +68,52 @@ def credits(
                 typer.echo(f"Total Credits: ${credits_info.total_credits:.2f}")
                 typer.echo(f"Usage: ${credits_info.usage:.2f}")
                 typer.echo(f"Remaining: ${credits_info.remaining:.2f}")
+
+        except ValueError as e:
+            typer.echo(str(e), err=True)
+            sys.exit(1)
+        except httpx.HTTPStatusError as e:
+            typer.echo(f"API error: {e.response.status_code}", err=True)
+            sys.exit(1)
+        except httpx.RequestError as e:
+            typer.echo(f"Network error: {e}", err=True)
+            sys.exit(1)
+
+    asyncio.run(run())
+
+
+@list_app.command()
+def models(
+    provider: Optional[str] = typer.Option(None, "--provider", help="Provider name"),
+    json_output: bool = typer.Option(False, "--json", help="Output in JSON format"),
+):
+    """List models from all or specified providers"""
+
+    async def run():
+        try:
+            if provider:
+                provider_instance = get_provider(provider)
+                models = await provider_instance.get_models()
+                models_with_provider = [(provider_instance.provider_name, m) for m in models]
+            else:
+                providers = get_providers()
+                all_models = []
+                for provider_name, provider_instance in providers.items():
+                    models = await provider_instance.get_models()
+                    all_models.extend([(provider_instance.provider_name, m) for m in models])
+                models_with_provider = all_models
+
+            if json_output:
+                output = [
+                    {"provider": pn, "model": m.model_dump()} for pn, m in models_with_provider
+                ]
+                typer.echo(json.dumps(output, indent=2))
+            else:
+                if not models_with_provider:
+                    typer.echo("No models available")
+                else:
+                    table = format_models_table(models_with_provider)
+                    console.print(table)
 
         except ValueError as e:
             typer.echo(str(e), err=True)
