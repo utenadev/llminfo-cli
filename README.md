@@ -69,6 +69,21 @@ providers:
 
 See `SPEC.md` for detailed provider addition criteria.
 
+### List Models
+
+List models from all or specified providers.
+
+```bash
+# List models from all providers
+llminfo list models
+
+# List models from a specific provider
+llminfo list models --provider openrouter
+
+# Output in JSON format
+llminfo list models --json
+```
+
 ### Test and Import Providers
 
 Test a new provider configuration and import it into `providers.yml`.

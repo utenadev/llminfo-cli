@@ -69,6 +69,21 @@ providers:
 
 詳細なプロバイダー追加基準については `SPEC.md` を参照してください。
 
+### モデル一覧表示
+
+全プロバイダーまたは指定されたプロバイダーからモデルを一覧表示します。
+
+```bash
+# 全プロバイダーのモデルを一覧表示
+llminfo list models
+
+# 特定プロバイダーのモデルを一覧表示
+llminfo list models --provider openrouter
+
+# JSON 形式で出力
+llminfo list models --json
+```
+
 ## 出力形式
 
 ### テーブル形式（デフォルト）
