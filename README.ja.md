@@ -2,6 +2,9 @@
 
 OpenRouter.ai および関連 AI プロバイダー（Groq、Cerebras、Mistral）の利用可能な LLM モデル情報を取得・検索する CLI ツール
 
+2025/12/29 11:30 temporary edit!!
+
+
 ## リポジトリ
 
 https://github.com/utenadev/llminfo-cli
