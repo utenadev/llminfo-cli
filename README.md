@@ -25,6 +25,29 @@ export MISTRAL_API_KEY="your-mistral-api-key"    # optional
 
 ## Usage
 
+### Getting Started
+
+When you run `llminfo` without arguments, you'll see available commands:
+
+```bash
+llminfo
+
+# Output:
+# Usage: llminfo [COMMAND] [OPTIONS]
+#
+# Available commands:
+#   credits         Display credit balance for the specified provider
+#   list            List models from providers
+#   test-provider   Test a provider configuration
+#   import-provider Test and import a provider configuration
+#
+# Run 'llminfo [COMMAND] --help' for command-specific help.
+#
+# Examples:
+#   llminfo list models                    # List all models
+#   llminfo credits --provider openrouter  # Check credits
+```
+
 ### List Models
 
 List models from all or specified providers.
