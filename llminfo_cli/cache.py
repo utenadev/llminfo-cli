@@ -12,10 +12,11 @@ class CacheManager:
     """Manage provider model caches"""
 
     CACHE_DIR = Path.home() / ".cache" / "llminfo"
-    CACHE_TTL = timedelta(hours=1)
+    DEFAULT_CACHE_TTL = timedelta(hours=1)
 
-    def __init__(self):
+    def __init__(self, ttl_hours: int = 1):
         self.CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        self.CACHE_TTL = timedelta(hours=ttl_hours)
 
     def _get_cache_file(self, provider_name: str) -> Path:
         """Get cache file path for provider"""

@@ -23,6 +23,7 @@ class GenericProvider(Provider):
         parser: ResponseParser,
         api_key: Optional[str] = None,
         credits_endpoint: Optional[str] = None,
+        cache_ttl_hours: int = 1,
     ):
         self.provider_name_value = provider_name
         self.base_url = base_url
@@ -31,7 +32,7 @@ class GenericProvider(Provider):
         self.models_endpoint = models_endpoint
         self.parser = parser
         self.credits_endpoint = credits_endpoint
-        self.cache_manager = CacheManager()
+        self.cache_manager = CacheManager(ttl_hours=cache_ttl_hours)
 
     async def get_models(self, use_cache: bool = True) -> List[ModelInfo]:
         """Fetch list of available models from provider"""
@@ -94,6 +95,7 @@ class ProviderFactory:
         models_endpoint: str = "/models",
         credits_endpoint: Optional[str] = None,
         api_key: Optional[str] = None,
+        cache_ttl_hours: int = 1,
     ) -> GenericProvider:
         """Create an OpenAI-compatible provider"""
         parser = OpenAICompatibleParser(model_path="data")
@@ -105,10 +107,13 @@ class ProviderFactory:
             parser=parser,
             api_key=api_key,
             credits_endpoint=credits_endpoint,
+            cache_ttl_hours=cache_ttl_hours,
         )
 
     @staticmethod
-    def create_openrouter(api_key: Optional[str] = None) -> GenericProvider:
+    def create_openrouter(
+        api_key: Optional[str] = None, cache_ttl_hours: int = 1
+    ) -> GenericProvider:
         """Create an OpenRouter provider"""
         parser = OpenRouterParser()
         return GenericProvider(
@@ -119,4 +124,5 @@ class ProviderFactory:
             parser=parser,
             api_key=api_key,
             credits_endpoint="/credits",
+            cache_ttl_hours=cache_ttl_hours,
         )

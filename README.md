@@ -70,6 +70,39 @@ llminfo list models --force
 
 llminfo-cli includes comprehensive logging for debugging and monitoring. Logs are written to both console and `llminfo.log` file.
 
+### Advanced Usage
+
+#### Custom Cache TTL
+
+You can configure cache TTL by modifying provider implementations:
+
+```python
+# Example: Set 2-hour cache TTL
+from llminfo_cli.providers.generic import GenericProvider
+
+provider = GenericProvider(
+    provider_name="custom",
+    base_url="https://api.example.com",
+    api_key_env="CUSTOM_API_KEY",
+    models_endpoint="/models",
+    parser=OpenAICompatibleParser(),
+    cache_ttl_hours=2  # 2 hours instead of default 1 hour
+)
+```
+
+#### Troubleshooting
+
+**Common Issues:**
+
+- **API Key Not Set**: Ensure environment variables are properly configured
+- **Network Errors**: Check internet connection and API endpoints
+- **Rate Limiting**: Wait before retrying or check API limits
+- **Cache Issues**: Use `--force` flag to bypass cache
+
+**Debugging:**
+
+Check `llminfo.log` for detailed error information and API call logs.
+
 ## Caching
 
 Model lists are cached for 1 hour by default. Cache is stored in `~/.cache/llminfo/`.
