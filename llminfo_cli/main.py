@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 import sys
 from pathlib import Path
 from typing import Dict, Optional
@@ -18,6 +19,14 @@ from llminfo_cli.providers.generic import GenericProvider
 from llminfo_cli.validators import validate_provider_config
 from llminfo_cli.schemas import ModelInfo
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(), logging.FileHandler("llminfo.log", mode="a")],
+)
+logger = logging.getLogger("llminfo")
+
 app = typer.Typer()
 list_app = typer.Typer(help="List models from providers")
 app.add_typer(list_app, name="list")
@@ -30,7 +39,9 @@ def main(
     json_output: bool = typer.Option(False, "--json", help="Output in JSON format"),
 ):
     """llminfo: CLI tool for LLM model information"""
+    logger.info("llminfo CLI started")
     if ctx.invoked_subcommand is None:
+        logger.info("Displaying help message")
         typer.echo("Usage: llminfo [COMMAND] [OPTIONS]")
         typer.echo("\nAvailable commands:")
         typer.echo("  credits         Display credit balance for the specified provider")
@@ -73,6 +84,7 @@ def credits(
     """
 
     async def run():
+        logger.info(f"Checking credits for provider: {provider}")
         try:
             provider_instance = get_provider(provider)
             credits_info = await provider_instance.get_credits()
@@ -89,13 +101,16 @@ def credits(
                 typer.echo(f"Remaining: ${credits_info.remaining:.2f}")
 
         except ValueError as e:
+            logger.error(f"Credits command failed: {e}")
             typer.echo(str(e), err=True)
             typer.echo("\nRun 'llminfo --help' to see available commands.", err=True)
             sys.exit(1)
         except httpx.HTTPStatusError as e:
+            logger.error(f"API error in credits command: {e.response.status_code}")
             typer.echo(f"API error: {e.response.status_code}", err=True)
             sys.exit(1)
         except httpx.RequestError as e:
+            logger.error(f"Network error in credits command: {e}")
             typer.echo(f"Network error: {e}", err=True)
             sys.exit(1)
 
@@ -119,18 +134,22 @@ def models(
     """
 
     async def run():
+        logger.info(f"Listing models, provider: {provider or 'all'}, force: {force}")
         try:
             if provider:
                 provider_instance = get_provider(provider)
                 models = await provider_instance.get_models(use_cache=not force)
                 models_with_provider = [(provider_instance.provider_name, m) for m in models]
+                logger.info(f"Retrieved {len(models)} models from {provider}")
             else:
                 providers = get_providers()
                 all_models = []
                 for provider_name, provider_instance in providers.items():
                     models = await provider_instance.get_models(use_cache=not force)
                     all_models.extend([(provider_instance.provider_name, m) for m in models])
+                    logger.info(f"Retrieved {len(models)} models from {provider_name}")
                 models_with_provider = all_models
+                logger.info(f"Total models retrieved: {len(all_models)}")
 
             if json_output:
                 output = [
@@ -145,13 +164,16 @@ def models(
                     console.print(table)
 
         except ValueError as e:
+            logger.error(f"List models command failed: {e}")
             typer.echo(str(e), err=True)
             typer.echo("\nRun 'llminfo --help' to see available commands.", err=True)
             sys.exit(1)
         except httpx.HTTPStatusError as e:
+            logger.error(f"API error in list models command: {e.response.status_code}")
             typer.echo(f"API error: {e.response.status_code}", err=True)
             sys.exit(1)
         except httpx.RequestError as e:
+            logger.error(f"Network error in list models command: {e}")
             typer.echo(f"Network error: {e}", err=True)
             sys.exit(1)
 
@@ -197,8 +219,10 @@ def test_provider(
     """
 
     async def run():
+        logger.info(f"Testing provider configuration: {plugin_file}")
         try:
             if not plugin_file.exists():
+                logger.error(f"Plugin file not found: {plugin_file}")
                 typer.echo(f"Plugin file not found: {plugin_file}", err=True)
                 sys.exit(1)
 
@@ -207,6 +231,7 @@ def test_provider(
 
             is_valid, error = validate_provider_config(config)
             if not is_valid:
+                logger.error(f"Configuration validation failed: {error}")
                 typer.echo(f"Configuration error: {error}", err=True)
                 sys.exit(1)
 
@@ -216,6 +241,7 @@ def test_provider(
             typer.echo(f"Base URL: {config['base_url']}")
 
             models = await provider.get_models(use_cache=False)
+            logger.info(f"Successfully tested provider {config['name']}: {len(models)} models")
 
             typer.echo(f"✓ Successfully retrieved {len(models)} models")
 
@@ -225,13 +251,16 @@ def test_provider(
                     typer.echo(f"  - {model.id}")
 
         except ValueError as e:
+            logger.error(f"Test provider command failed: {e}")
             typer.echo(f"Configuration error: {e}", err=True)
             typer.echo("\nRun 'llminfo --help' to see available commands.", err=True)
             sys.exit(1)
         except httpx.HTTPStatusError as e:
+            logger.error(f"API error in test provider command: {e.response.status_code}")
             typer.echo(f"API error: {e.response.status_code}", err=True)
             sys.exit(1)
         except httpx.RequestError as e:
+            logger.error(f"Network error in test provider command: {e}")
             typer.echo(f"Network error: {e}", err=True)
             sys.exit(1)
 
@@ -252,8 +281,10 @@ def import_provider(
     """
 
     async def run():
+        logger.info(f"Importing provider configuration: {plugin_file}")
         try:
             if not plugin_file.exists():
+                logger.error(f"Plugin file not found: {plugin_file}")
                 typer.echo(f"Plugin file not found: {plugin_file}", err=True)
                 sys.exit(1)
 
@@ -262,6 +293,7 @@ def import_provider(
 
             is_valid, error = validate_provider_config(config)
             if not is_valid:
+                logger.error(f"Configuration validation failed: {error}")
                 typer.echo(f"Configuration error: {error}", err=True)
                 sys.exit(1)
 
@@ -273,6 +305,7 @@ def import_provider(
             provider = _create_provider_from_config(config, api_key=api_key)
 
             models = await provider.get_models(use_cache=False)
+            logger.info(f"Successfully imported provider {provider_name}: {len(models)} models")
 
             typer.echo(f"✓ Successfully retrieved {len(models)} models")
 
@@ -297,13 +330,16 @@ def import_provider(
             typer.echo(f"Plugin file can be deleted: {plugin_file}")
 
         except ValueError as e:
+            logger.error(f"Import provider command failed: {e}")
             typer.echo(f"Configuration error: {e}", err=True)
             typer.echo("\nRun 'llminfo --help' to see available commands.", err=True)
             sys.exit(1)
         except httpx.HTTPStatusError as e:
+            logger.error(f"API error in import provider command: {e.response.status_code}")
             typer.echo(f"API error: {e.response.status_code}", err=True)
             sys.exit(1)
         except httpx.RequestError as e:
+            logger.error(f"Network error in import provider command: {e}")
             typer.echo(f"Network error: {e}", err=True)
             sys.exit(1)
 

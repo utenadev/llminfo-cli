@@ -1,6 +1,7 @@
 """Integration tests with actual API calls"""
 
 import os
+from unittest.mock import patch, MagicMock
 
 import pytest
 
@@ -85,3 +86,24 @@ async def test_groq_get_credits_real():
     assert credits is None
 
     print("\nGroq provider correctly returns None for credits (not supported)")
+
+
+def test_provider_integration_with_mocks():
+    """Test provider integration using mocks (no API calls)"""
+    # This test verifies the integration flow without actual async calls
+    # The actual async testing is done in unit tests with proper mocking
+
+    # Test that providers can be instantiated correctly
+    provider = OpenRouterProvider(api_key="test_key")
+    assert provider.provider_name == "openrouter"
+    assert provider.api_key == "test_key"
+
+
+def test_provider_switching_integration():
+    """Test switching between different providers"""
+    # Test that different providers can be instantiated
+    providers_to_test = ["openrouter", "groq", "cerebras", "mistral"]
+
+    for provider_name in providers_to_test:
+        provider = get_provider(provider_name, api_key="test_key")
+        assert provider.provider_name == provider_name

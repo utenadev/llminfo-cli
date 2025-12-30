@@ -66,6 +66,10 @@ llminfo list models --json
 llminfo list models --force
 ```
 
+### Logging
+
+llminfo-cli includes comprehensive logging for debugging and monitoring. Logs are written to both console and `llminfo.log` file.
+
 ## Caching
 
 Model lists are cached for 1 hour by default. Cache is stored in `~/.cache/llminfo/`.
