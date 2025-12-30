@@ -24,12 +24,24 @@ app.add_typer(list_app, name="list")
 console = Console()
 
 
-@app.callback()
+@app.callback(invoke_without_command=True)
 def main(
+    ctx: typer.Context,
     json_output: bool = typer.Option(False, "--json", help="Output in JSON format"),
 ):
     """llminfo: CLI tool for LLM model information"""
-    pass
+    if ctx.invoked_subcommand is None:
+        typer.echo("Usage: llminfo [COMMAND] [OPTIONS]")
+        typer.echo("\nAvailable commands:")
+        typer.echo("  credits         Display credit balance for the specified provider")
+        typer.echo("  list            List models from providers")
+        typer.echo("  test-provider   Test a provider configuration")
+        typer.echo("  import-provider Test and import a provider configuration")
+        typer.echo("\nRun 'llminfo [COMMAND] --help' for command-specific help.")
+        typer.echo("\nExamples:")
+        typer.echo("  llminfo list models                    # List all models")
+        typer.echo("  llminfo credits --provider openrouter  # Check credits")
+        raise typer.Exit()
 
 
 def format_models_table(models: list[tuple[str, ModelInfo]]) -> Table:
@@ -52,7 +64,13 @@ def credits(
     provider: str = typer.Option("openrouter", "--provider", help="Provider name"),
     json_output: bool = typer.Option(False, "--json", help="Output in JSON format"),
 ):
-    """Display credit balance for the specified provider"""
+    """
+    Display credit balance for the specified provider
+
+    Examples:
+      llminfo credits --provider openrouter  # Check OpenRouter credits
+      llminfo credits --json               # Output in JSON format
+    """
 
     async def run():
         try:
@@ -72,6 +90,7 @@ def credits(
 
         except ValueError as e:
             typer.echo(str(e), err=True)
+            typer.echo("\nRun 'llminfo --help' to see available commands.", err=True)
             sys.exit(1)
         except httpx.HTTPStatusError as e:
             typer.echo(f"API error: {e.response.status_code}", err=True)
@@ -89,7 +108,15 @@ def models(
     json_output: bool = typer.Option(False, "--json", help="Output in JSON format"),
     force: bool = typer.Option(False, "--force", help="Force refresh from API (ignore cache)"),
 ):
-    """List models from all or specified providers"""
+    """
+    List models from all or specified providers
+
+    Examples:
+      llminfo list models                    # List models from all providers
+      llminfo list models --provider openrouter  # List models from OpenRouter only
+      llminfo list models --json             # Output in JSON format
+      llminfo list models --force            # Force refresh from API
+    """
 
     async def run():
         try:
@@ -119,6 +146,7 @@ def models(
 
         except ValueError as e:
             typer.echo(str(e), err=True)
+            typer.echo("\nRun 'llminfo --help' to see available commands.", err=True)
             sys.exit(1)
         except httpx.HTTPStatusError as e:
             typer.echo(f"API error: {e.response.status_code}", err=True)
@@ -160,7 +188,13 @@ def test_provider(
     plugin_file: Path = typer.Argument(..., help="Path to plugin YAML file"),
     api_key: Optional[str] = typer.Option(None, "--api-key", help="API key for testing"),
 ):
-    """Test a provider configuration without adding it to providers.yml"""
+    """
+    Test a provider configuration without adding it to providers.yml
+
+    Examples:
+      llminfo test-provider plugin/new-provider.yml  # Test with API key from env
+      llminfo test-provider plugin/new-provider.yml --api-key your-key  # Test with specific key
+    """
 
     async def run():
         try:
@@ -192,6 +226,7 @@ def test_provider(
 
         except ValueError as e:
             typer.echo(f"Configuration error: {e}", err=True)
+            typer.echo("\nRun 'llminfo --help' to see available commands.", err=True)
             sys.exit(1)
         except httpx.HTTPStatusError as e:
             typer.echo(f"API error: {e.response.status_code}", err=True)
@@ -208,7 +243,13 @@ def import_provider(
     plugin_file: Path = typer.Argument(..., help="Path to plugin YAML file"),
     api_key: Optional[str] = typer.Option(None, "--api-key", help="API key for testing"),
 ):
-    """Test and import a provider configuration into providers.yml"""
+    """
+    Test and import a provider configuration into providers.yml
+
+    Examples:
+      llminfo import-provider plugin/new-provider.yml  # Import with API key from env
+      llminfo import-provider plugin/new-provider.yml --api-key your-key  # Import with specific key
+    """
 
     async def run():
         try:
@@ -257,6 +298,7 @@ def import_provider(
 
         except ValueError as e:
             typer.echo(f"Configuration error: {e}", err=True)
+            typer.echo("\nRun 'llminfo --help' to see available commands.", err=True)
             sys.exit(1)
         except httpx.HTTPStatusError as e:
             typer.echo(f"API error: {e.response.status_code}", err=True)
