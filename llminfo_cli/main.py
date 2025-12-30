@@ -105,13 +105,9 @@ def credits(
             typer.echo(str(e), err=True)
             typer.echo("\nRun 'llminfo --help' to see available commands.", err=True)
             sys.exit(1)
-        except httpx.HTTPStatusError as e:
-            logger.error(f"API error in credits command: {e.response.status_code}")
-            typer.echo(f"API error: {e.response.status_code}", err=True)
-            sys.exit(1)
-        except httpx.RequestError as e:
-            logger.error(f"Network error in credits command: {e}")
-            typer.echo(f"Network error: {e}", err=True)
+        except Exception as e:
+            logger.error(f"Error in credits command: {e}")
+            typer.echo(f"Error: {e}", err=True)
             sys.exit(1)
 
     asyncio.run(run())
@@ -149,19 +145,7 @@ def models(
                     all_models.extend([(provider_instance.provider_name, m) for m in models])
                     logger.info(f"Retrieved {len(models)} models from {provider_name}")
                 models_with_provider = all_models
-                logger.info(f"Total models retrieved: {len(all_models)}")
-
-            if json_output:
-                output = [
-                    {"provider": pn, "model": m.model_dump()} for pn, m in models_with_provider
-                ]
-                typer.echo(json.dumps(output, indent=2))
-            else:
-                if not models_with_provider:
-                    typer.echo("No models available")
-                else:
-                    table = format_models_table(models_with_provider)
-                    console.print(table)
+            logger.info(f"Total models retrieved: {len(all_models)}")
 
         except ValueError as e:
             logger.error(f"List models command failed: {e}")
@@ -266,6 +250,8 @@ def test_provider(
 
     asyncio.run(run())
 
+    asyncio.run(run())
+
 
 @app.command()
 def import_provider(
@@ -335,8 +321,12 @@ def import_provider(
             typer.echo("\nRun 'llminfo --help' to see available commands.", err=True)
             sys.exit(1)
         except httpx.HTTPStatusError as e:
-            logger.error(f"API error in import provider command: {e.response.status_code}")
+            logger.error(f"API error in credits command: {e.response.status_code}")
             typer.echo(f"API error: {e.response.status_code}", err=True)
+            sys.exit(1)
+        except httpx.RequestError as e:
+            logger.error(f"Network error in credits command: {e}")
+            typer.echo(f"Network error: {e}", err=True)
             sys.exit(1)
         except httpx.RequestError as e:
             logger.error(f"Network error in import provider command: {e}")
