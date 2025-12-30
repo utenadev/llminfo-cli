@@ -147,6 +147,18 @@ def models(
                 models_with_provider = all_models
             logger.info(f"Total models retrieved: {len(all_models)}")
 
+            if json_output:
+                output = [
+                    {"provider": pn, "model": m.model_dump()} for pn, m in models_with_provider
+                ]
+                typer.echo(json.dumps(output, indent=2))
+            else:
+                if not models_with_provider:
+                    typer.echo("No models available")
+                else:
+                    table = format_models_table(models_with_provider)
+                    console.print(table)
+
         except ValueError as e:
             logger.error(f"List models command failed: {e}")
             typer.echo(str(e), err=True)
@@ -247,8 +259,6 @@ def test_provider(
             logger.error(f"Network error in test provider command: {e}")
             typer.echo(f"Network error: {e}", err=True)
             sys.exit(1)
-
-    asyncio.run(run())
 
     asyncio.run(run())
 
