@@ -1,0 +1,145 @@
+version: '3'
+
+vars:
+  PROJECT_NAME: llminfo-cli
+  PYTHON_PATH: python3
+  PIP_PATH: pip
+
+tasks:
+  setup:
+    desc: Setup the project with virtual environment and dependencies
+    cmds:
+      - 'echo "Setting up {{.PROJECT_NAME}}..."'
+      - 'python3 -m venv venv'
+      - 'echo "venv/" > .gitignore'
+      - 'echo "__pycache__/" >> .gitignore'
+      - 'echo "*.log" >> .gitignore'
+      - '{{.PIP_PATH}} install --upgrade pip'
+      - '{{.PIP_PATH}} install -e ".[dev]"'
+      - 'echo "Setup complete!"'
+      - 'echo "Run: task run to execute the CLI tool"'
+
+  run:
+    desc: Run the llminfo CLI tool
+    deps: [setup]
+    cmds:
+      - '{{.PYTHON_PATH}} -m llminfo_cli.main'
+
+  run-list:
+    desc: Run llminfo list models command
+    deps: [setup]
+    cmds:
+      - '{{.PYTHON_PATH}} -m llminfo_cli.main list models'
+
+  run-credits:
+    desc: Run llminfo credits command
+    deps: [setup]
+    cmds:
+      - '{{.PYTHON_PATH}} -m llminfo_cli.main credits'
+
+  test:
+    desc: Run all tests
+    deps: [setup]
+    cmds:
+      - 'echo "Running tests..."'
+      - '{{.PYTHON_PATH}} -m pytest -v'
+
+  test-unit:
+    desc: Run unit tests only
+    deps: [setup]
+    cmds:
+      - '{{.PYTHON_PATH}} -m pytest -v -k "not integration"'
+
+  test-integration:
+    desc: Run integration tests (requires API keys)
+    deps: [setup]
+    cmds:
+      - |
+        if ! command -v dotenvx &> /dev/null; then
+          echo "Error: dotenvx is required but not found."
+          echo "Please install dotenvx from https://dotenvx.com/"
+          exit 1
+        fi
+        dotenvx run -f .env.test -- {{.PYTHON_PATH}} -m pytest -v -m integration
+
+  lint:
+    desc: Run linters (ruff check and format)
+    cmds:
+      - 'ruff check .'
+      - 'ruff format --check .'
+
+  lint-fix:
+    desc: Run linters and fix issues
+    cmds:
+      - 'ruff check . --fix'
+      - 'ruff format .'
+
+  type-check:
+    desc: Run type checking (mypy)
+    cmds:
+      - 'mypy llminfo_cli tests'
+
+  clean:
+    desc: Clean up temporary files and virtual environment
+    cmds:
+      - 'rm -rf venv/'
+      - 'rm -rf __pycache__/'
+      - 'rm -rf */__pycache__/'
+      - 'rm -rf .ruff_cache/'
+      - 'rm -rf .mypy_cache/'
+      - 'rm -rf .pytest_cache/'
+      - 'rm -rf cov_html/'
+      - 'rm -rf htmlcov/'
+      - 'find . -type f -name "*.pyc" -delete'
+      - 'find . -type d -name "__pycache__" -delete'
+
+  install-deps:
+    desc: Install dependencies only
+    cmds:
+      - 'python3 -m venv venv'
+      - 'source venv/bin/activate && {{.PIP_PATH}} install --upgrade pip'
+      - 'source venv/bin/activate && {{.PIP_PATH}} install -e ".[dev]"'
+
+  update-deps:
+    desc: Update dependencies
+    cmds:
+      - 'source venv/bin/activate && {{.PIP_PATH}} install --upgrade -e ".[dev]"'
+
+  build:
+    desc: Build the package
+    cmds:
+      - '{{.PIP_PATH}} install build'
+      - '{{.PYTHON_PATH}} -m build'
+
+  build-wheel:
+    desc: Build wheel distribution
+    cmds:
+      - '{{.PIP_PATH}} install build'
+      - '{{.PYTHON_PATH}} -m build --wheel'
+
+  check:
+    desc: Run all checks (lint, type-check, test)
+    cmds:
+      - 'task: lint'
+      - 'task: type-check'
+      - 'task: test'
+
+  dev:
+    desc: Run development setup (setup, then run tests)
+    cmds:
+      - 'task: setup'
+      - 'task: test'
+
+  status:
+    desc: Show project status
+    cmds:
+      - 'echo "Project: {{.PROJECT_NAME}}"'
+      - 'echo "Python: $({{.PYTHON_PATH}} --version)"'
+      - 'echo "Virtual environment: $(test -d venv && echo ''exists'' || echo ''missing'')"'
+      - 'echo "Dependencies: $(test -f pyproject.toml && echo ''available'' || echo ''missing'')"'
+      - 'echo "Package: $(python -c "import llminfo_cli" 2>/dev/null && echo ''installed'' || echo ''not installed'')"'
+
+  help:
+    desc: Show available tasks
+    cmds:
+      - 'task --list'

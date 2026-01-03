@@ -213,6 +213,41 @@ llminfo import-provider plugin/new-provider.yml --api-key your-api-key
 
 ## Development
 
+### Using Task Runner (Recommended)
+
+For easier project management, you can use Task runner:
+
+```bash
+# Install Task (https://taskfile.dev/installation/)
+# Using mise (if you have mise installed):
+mise install task=latest
+
+# Or install directly from https://taskfile.dev/installation/
+
+# Setup the project
+task setup
+
+# Run all tests
+task test
+
+# Run linters
+task lint
+
+# Run type checking
+task type-check
+
+# Run all checks (lint, type-check, test)
+task check
+
+# Run development setup (setup + tests)
+task dev
+
+# Show available tasks
+task help
+```
+
+### Direct Commands
+
 ```bash
 # Clone repository
 git clone https://github.com/utenadev/llminfo-cli.git

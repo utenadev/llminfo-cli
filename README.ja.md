@@ -154,6 +154,41 @@ llminfo import-provider plugin/new-provider.yml --api-key your-api-key
 
 ## 開発
 
+### Task Runnerの使用（推奨）
+
+より簡単なプロジェクト管理のために、Task runnerを使用できます：
+
+```bash
+# Taskのインストール (https://taskfile.dev/installation/)
+# miseを使用する場合（miseがインストールされている場合）:
+mise install task=latest
+
+# または https://taskfile.dev/installation/ から直接インストール
+
+# プロジェクトのセットアップ
+task setup
+
+# すべてのテストを実行
+task test
+
+# リンターを実行
+task lint
+
+# 型チェックを実行
+task type-check
+
+# すべてのチェックを実行（リンター、型チェック、テスト）
+task check
+
+# 開発セットアップを実行（セットアップ＋テスト）
+task dev
+
+# 利用可能なタスクを表示
+task help
+```
+
+### 直接コマンドを使用
+
 ```bash
 # リポジトリをクローン
 git clone https://github.com/utenadev/llminfo-cli.git
