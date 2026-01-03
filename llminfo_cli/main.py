@@ -106,6 +106,17 @@ def credits(
             typer.echo(str(e), err=True)
             typer.echo("\nRun 'llminfo --help' to see available commands.", err=True)
             sys.exit(1)
+        except APIError as e:
+            logger.error(f"API error in credits command: {e.status_code}")
+            if e.status_code:
+                typer.echo(f"API error: {e.status_code}", err=True)
+            else:
+                typer.echo(f"API error: {str(e)}", err=True)
+            sys.exit(1)
+        except NetworkError as e:
+            logger.error(f"Network error in credits command: {e}")
+            typer.echo(f"Network error: {e}", err=True)
+            sys.exit(1)
         except Exception as e:
             logger.error(f"Error in credits command: {e}")
             typer.echo(f"Error: {e}", err=True)
@@ -167,7 +178,10 @@ def models(
             sys.exit(1)
         except APIError as e:
             logger.error(f"API error in list models command: {e.status_code}")
-            typer.echo(f"API error: {e.status_code}", err=True)
+            if e.status_code:
+                typer.echo(f"API error: {e.status_code}", err=True)
+            else:
+                typer.echo(f"API error: {str(e)}", err=True)
             sys.exit(1)
         except NetworkError as e:
             logger.error(f"Network error in list models command: {e}")
@@ -254,7 +268,10 @@ def test_provider(
             sys.exit(1)
         except APIError as e:
             logger.error(f"API error in test provider command: {e.status_code}")
-            typer.echo(f"API error: {e.status_code}", err=True)
+            if e.status_code:
+                typer.echo(f"API error: {e.status_code}", err=True)
+            else:
+                typer.echo(f"API error: {str(e)}", err=True)
             sys.exit(1)
         except NetworkError as e:
             logger.error(f"Network error in test provider command: {e}")
@@ -343,7 +360,10 @@ def import_provider(
             sys.exit(1)
         except APIError as e:
             logger.error(f"API error in import provider command: {e.status_code}")
-            typer.echo(f"API error: {e.status_code}", err=True)
+            if e.status_code:
+                typer.echo(f"API error: {e.status_code}", err=True)
+            else:
+                typer.echo(f"API error: {str(e)}", err=True)
             sys.exit(1)
         except NetworkError as e:
             logger.error(f"Network error in import provider command: {e}")
