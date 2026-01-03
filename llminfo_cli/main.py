@@ -310,19 +310,29 @@ def import_provider(
                 for model in models[:3]:
                     typer.echo(f"  - {model.id}")
 
-            typer.echo(f"\nAdding {provider_name} to providers.yml...")
+            typer.echo(f"\nAdding {provider_name} to user providers.yml...")
 
-            providers_yml = Path(__file__).parent.parent / "providers.yml"
+            # Create user config directory if it doesn't exist
+            config_dir = Path.home() / ".config" / "llminfo"
+            config_dir.mkdir(parents=True, exist_ok=True)
 
-            with providers_yml.open() as f:
-                providers_config = yaml.safe_load(f)
+            user_providers_yml = config_dir / "providers.yml"
 
-            providers_config["providers"][provider_name] = config
+            # Load existing user config or create new one
+            if user_providers_yml.exists():
+                with user_providers_yml.open() as f:
+                    user_providers_config = yaml.safe_load(f) or {}
+            else:
+                user_providers_config = {"providers": {}}
 
-            with providers_yml.open("w") as f:
-                yaml.dump(providers_config, f, default_flow_style=False)
+            # Add the new provider
+            user_providers_config.setdefault("providers", {})[provider_name] = config
 
-            typer.echo(f"✓ Provider '{provider_name}' successfully added to providers.yml")
+            # Write back to user config file
+            with user_providers_yml.open("w") as f:
+                yaml.dump(user_providers_config, f, default_flow_style=False)
+
+            typer.echo(f"✓ Provider '{provider_name}' successfully added to user providers.yml")
             typer.echo(f"Plugin file can be deleted: {plugin_file}")
 
         except ValueError as e:

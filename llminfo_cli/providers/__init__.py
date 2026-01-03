@@ -1,5 +1,6 @@
 """Provider implementations and configuration loading"""
 
+import os
 from pathlib import Path
 from typing import Any, Dict
 
@@ -12,15 +13,44 @@ from llminfo_cli.providers.parsers import OpenAICompatibleParser, OpenRouterPars
 __all__ = ["Provider", "get_provider", "get_providers"]
 
 
-def _load_provider_config() -> Dict[str, Any]:
-    """Load provider configuration from providers.yml"""
-    config_path = Path(__file__).parent.parent.parent / "providers.yml"
+def _load_builtin_provider_config() -> Dict[str, Any]:
+    """Load built-in provider configuration from package data"""
+    import importlib.resources
+    try:
+        # For Python 3.9+
+        config_data = importlib.resources.read_text('llminfo_cli.data', 'providers.yml')
+        return yaml.safe_load(config_data) or {}
+    except:
+        # Fallback for other cases
+        builtin_path = Path(__file__).parent.parent / "data" / "providers.yml"
+        if builtin_path.exists():
+            with builtin_path.open() as f:
+                return yaml.safe_load(f) or {}
+        return {}
+
+
+def _load_user_provider_config() -> Dict[str, Any]:
+    """Load user provider configuration from config directory"""
+    config_dir = Path.home() / ".config" / "llminfo"
+    config_path = config_dir / "providers.yml"
 
     if not config_path.exists():
         return {}
 
     with config_path.open() as f:
         return yaml.safe_load(f) or {}
+
+
+def _load_provider_config() -> Dict[str, Any]:
+    """Load provider configuration from both built-in and user configs"""
+    builtin_config = _load_builtin_provider_config()
+    user_config = _load_user_provider_config()
+
+    # Merge configurations (user config overrides built-in)
+    providers = builtin_config.get("providers", {}).copy()
+    providers.update(user_config.get("providers", {}))
+
+    return {"providers": providers}
 
 
 def _create_provider_from_config(
