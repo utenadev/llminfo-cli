@@ -57,6 +57,13 @@ plugin/*.yml
 # Cache
 .cache/
 
+# Log files
+llminfo.log
+
+# Coverage reports
+cov_html/
+htmlcov/
+
 # OS
 .DS_Store
 Thumbs.db

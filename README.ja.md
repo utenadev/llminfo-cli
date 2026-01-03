@@ -80,7 +80,7 @@ providers:
     credits_endpoint: null
 ```
 
-詳細なプロバイダー追加基準については `SPEC.md` を参照してください。
+詳細なプロバイダー追加基準については `docs/SPEC.md` を参照してください。
 
 ### モデル一覧表示
 

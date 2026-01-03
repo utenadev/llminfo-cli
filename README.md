@@ -154,7 +154,7 @@ providers:
     credits_endpoint: null
 ```
 
-See `SPEC.md` for detailed provider addition criteria.
+See `docs/SPEC.md` for detailed provider addition criteria.
 
 ## Output Formats
 
