@@ -9,6 +9,7 @@ from .base import Provider
 from .parsers import OpenAICompatibleParser, OpenRouterParser, ResponseParser
 from ..cache import CacheManager
 from ..schemas import CreditInfo, ModelInfo
+from ..errors import APIError, AuthenticationError, RateLimitError, NetworkError
 
 
 class GenericProvider(Provider):
@@ -44,20 +45,44 @@ class GenericProvider(Provider):
             if cached_models is not None:
                 return cached_models
 
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{self.base_url}{self.models_endpoint}",
-                headers={"Authorization": f"Bearer {self.api_key}"},
-                timeout=30.0,
-            )
-            response.raise_for_status()
-            data = response.json()
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{self.base_url}{self.models_endpoint}",
+                    headers={"Authorization": f"Bearer {self.api_key}"},
+                    timeout=30.0,
+                )
+                response.raise_for_status()
+                data = response.json()
 
-            models = self.parser.parse_models(data)
+                models = self.parser.parse_models(data)
 
-        self.cache_manager.set(self.provider_name_value, models)
+            self.cache_manager.set(self.provider_name_value, models)
 
-        return models
+            return models
+        except httpx.HTTPStatusError as e:
+            status_code = e.response.status_code
+            if status_code == 401:
+                raise AuthenticationError(
+                    f"Authentication failed for provider {self.provider_name_value}",
+                    provider=self.provider_name_value
+                ) from e
+            elif status_code == 429:
+                raise RateLimitError(
+                    f"Rate limit exceeded for provider {self.provider_name_value}",
+                    provider=self.provider_name_value
+                ) from e
+            else:
+                raise APIError(
+                    f"API request failed with status {status_code} for provider {self.provider_name_value}",
+                    status_code=status_code,
+                    provider=self.provider_name_value
+                ) from e
+        except httpx.RequestError as e:
+            raise NetworkError(
+                f"Network error occurred for provider {self.provider_name_value}",
+                original_error=e
+            ) from e
 
     async def get_credits(self) -> Optional[CreditInfo]:
         """Fetch credit information from provider"""
@@ -67,16 +92,40 @@ class GenericProvider(Provider):
         if not self.credits_endpoint:
             return None
 
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{self.base_url}{self.credits_endpoint}",
-                headers={"Authorization": f"Bearer {self.api_key}"},
-                timeout=30.0,
-            )
-            response.raise_for_status()
-            data = response.json()
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{self.base_url}{self.credits_endpoint}",
+                    headers={"Authorization": f"Bearer {self.api_key}"},
+                    timeout=30.0,
+                )
+                response.raise_for_status()
+                data = response.json()
 
-            return self.parser.parse_credits(data)
+                return self.parser.parse_credits(data)
+        except httpx.HTTPStatusError as e:
+            status_code = e.response.status_code
+            if status_code == 401:
+                raise AuthenticationError(
+                    f"Authentication failed for provider {self.provider_name_value}",
+                    provider=self.provider_name_value
+                ) from e
+            elif status_code == 429:
+                raise RateLimitError(
+                    f"Rate limit exceeded for provider {self.provider_name_value}",
+                    provider=self.provider_name_value
+                ) from e
+            else:
+                raise APIError(
+                    f"API request failed with status {status_code} for provider {self.provider_name_value}",
+                    status_code=status_code,
+                    provider=self.provider_name_value
+                ) from e
+        except httpx.RequestError as e:
+            raise NetworkError(
+                f"Network error occurred for provider {self.provider_name_value}",
+                original_error=e
+            ) from e
 
     @property
     def provider_name(self) -> str:

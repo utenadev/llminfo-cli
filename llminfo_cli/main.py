@@ -18,6 +18,7 @@ from llminfo_cli.providers.parsers import OpenAICompatibleParser, OpenRouterPars
 from llminfo_cli.providers.generic import GenericProvider
 from llminfo_cli.validators import validate_provider_config
 from llminfo_cli.schemas import ModelInfo
+from llminfo_cli.errors import APIError, NetworkError, AuthenticationError, RateLimitError
 
 # Configure logging
 logging.basicConfig(
@@ -164,11 +165,11 @@ def models(
             typer.echo(str(e), err=True)
             typer.echo("\nRun 'llminfo --help' to see available commands.", err=True)
             sys.exit(1)
-        except httpx.HTTPStatusError as e:
-            logger.error(f"API error in list models command: {e.response.status_code}")
-            typer.echo(f"API error: {e.response.status_code}", err=True)
+        except APIError as e:
+            logger.error(f"API error in list models command: {e.status_code}")
+            typer.echo(f"API error: {e.status_code}", err=True)
             sys.exit(1)
-        except httpx.RequestError as e:
+        except NetworkError as e:
             logger.error(f"Network error in list models command: {e}")
             typer.echo(f"Network error: {e}", err=True)
             sys.exit(1)
@@ -251,11 +252,11 @@ def test_provider(
             typer.echo(f"Configuration error: {e}", err=True)
             typer.echo("\nRun 'llminfo --help' to see available commands.", err=True)
             sys.exit(1)
-        except httpx.HTTPStatusError as e:
-            logger.error(f"API error in test provider command: {e.response.status_code}")
-            typer.echo(f"API error: {e.response.status_code}", err=True)
+        except APIError as e:
+            logger.error(f"API error in test provider command: {e.status_code}")
+            typer.echo(f"API error: {e.status_code}", err=True)
             sys.exit(1)
-        except httpx.RequestError as e:
+        except NetworkError as e:
             logger.error(f"Network error in test provider command: {e}")
             typer.echo(f"Network error: {e}", err=True)
             sys.exit(1)
@@ -340,11 +341,11 @@ def import_provider(
             typer.echo(f"Configuration error: {e}", err=True)
             typer.echo("\nRun 'llminfo --help' to see available commands.", err=True)
             sys.exit(1)
-        except httpx.HTTPStatusError as e:
-            logger.error(f"API error in import provider command: {e.response.status_code}")
-            typer.echo(f"API error: {e.response.status_code}", err=True)
+        except APIError as e:
+            logger.error(f"API error in import provider command: {e.status_code}")
+            typer.echo(f"API error: {e.status_code}", err=True)
             sys.exit(1)
-        except httpx.RequestError as e:
+        except NetworkError as e:
             logger.error(f"Network error in import provider command: {e}")
             typer.echo(f"Network error: {e}", err=True)
             sys.exit(1)
