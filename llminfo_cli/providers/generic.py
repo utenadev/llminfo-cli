@@ -41,7 +41,7 @@ class GenericProvider(Provider):
             raise ValueError(f"{self.api_key_env} environment variable not set")
 
         if use_cache:
-            cached_models = self.cache_manager.get(self.provider_name_value)
+            cached_models = await self.cache_manager.get(self.provider_name_value)
             if cached_models is not None:
                 return cached_models
 
@@ -57,7 +57,7 @@ class GenericProvider(Provider):
 
                 models = self.parser.parse_models(data)
 
-            self.cache_manager.set(self.provider_name_value, models)
+            await self.cache_manager.set(self.provider_name_value, models)
 
             return models
         except httpx.HTTPStatusError as e:
@@ -102,7 +102,8 @@ class GenericProvider(Provider):
                 response.raise_for_status()
                 data = response.json()
 
-                return self.parser.parse_credits(data)
+                credits_info = self.parser.parse_credits(data)
+                return credits_info
         except httpx.HTTPStatusError as e:
             status_code = e.response.status_code
             if status_code == 401:

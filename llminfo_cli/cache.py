@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Optional
 
+import aiofiles
+
 from llminfo_cli.schemas import ModelInfo
 
 
@@ -22,15 +24,16 @@ class CacheManager:
         """Get cache file path for provider"""
         return self.CACHE_DIR / f"{provider_name}_models.json"
 
-    def get(self, provider_name: str) -> Optional[List[ModelInfo]]:
+    async def get(self, provider_name: str) -> Optional[List[ModelInfo]]:
         """Get cached models if valid"""
         cache_file = self._get_cache_file(provider_name)
 
         if not cache_file.exists():
             return None
 
-        with cache_file.open() as f:
-            cache_data = json.load(f)
+        async with aiofiles.open(cache_file, 'r') as f:
+            cache_content = await f.read()
+            cache_data = json.loads(cache_content)
 
         cached_at = datetime.fromisoformat(cache_data["cached_at"])
         if datetime.now() - cached_at > self.CACHE_TTL:
@@ -38,7 +41,7 @@ class CacheManager:
 
         return [ModelInfo(**m) for m in cache_data["models"]]
 
-    def set(self, provider_name: str, models: List[ModelInfo]) -> None:
+    async def set(self, provider_name: str, models: List[ModelInfo]) -> None:
         """Cache models for provider"""
         cache_file = self._get_cache_file(provider_name)
 
@@ -48,10 +51,10 @@ class CacheManager:
             "models": [m.model_dump() for m in models],
         }
 
-        with cache_file.open("w") as f:
-            json.dump(cache_data, f, indent=2)
+        async with aiofiles.open(cache_file, 'w') as f:
+            await f.write(json.dumps(cache_data, indent=2))
 
-    def invalidate(self, provider_name: str) -> None:
+    async def invalidate(self, provider_name: str) -> None:
         """Invalidate cache for provider"""
         cache_file = self._get_cache_file(provider_name)
         if cache_file.exists():
