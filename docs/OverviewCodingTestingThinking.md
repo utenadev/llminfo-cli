@@ -1,103 +1,91 @@
-# Overview: Coding & Testing for Human-LLM Collaboration
+# 概要: LLM協働開発のためのコーディング・テストガイド
 
-This document outlines coding and testing standards optimized for a workflow where Humans and LLMs build software together.
-The goal is to write code that is not only executable by Python but also **understandable and verifiable by the AI Agent**.
+このドキュメントは、人間とLLMがソフトウェアを共同開発するためのコーディングおよびテストの標準指針です。
+目標は、PythonであれGolangであれ、**「AIエージェントが理解しやすく、かつ自律的に検証可能なコード」**を書くことです。
 
-## 1. Coding Standards: "Type Hints as Guardrails"
+## 1. コーディング標準: "Guardrails for AI"
 
-For LLMs, Python's dynamic nature can be a double-edged sword. Strong typing is the most effective way to constrain the LLM's output and prevent logical hallucinations.
+LLMは確率的にコードを生成するため、厳格な制約（ガードレール）が必要です。言語機能を用いて、AIの「幻覚」を防ぎます。
 
-### 1.1 Strict Type Hinting
-- **Why**: Type hints act as "inline documentation" that the LLM respects.
-- **Rule**:
-    - **No `Any`**: Avoid `Any`. It tells the LLM "do whatever you want," which leads to bugs.
-    - **Pydantic Models**: Use Pydantic for data structures. It forces the LLM to structure data exactly as defined.
-    - **Return Types**: Always define return types. This helps the LLM understand data flow across functions.
+### 1.1 強い型付け (Strong Typing)
+**言語を問わず、型定義は「LLMへの最強のドキュメント」です。**
 
-    ```python
-    # BAD (LLM might return a dict, None, or raise error unpredictably)
-    def get_data(id): ...
+- **Pythonの場合**:
+    - `Any` は禁止（AIに「何でもいい」と伝えるとバグります）。
+    - `Pydantic` モデルを使用して、データ構造を強制する。
+- **Golangの場合 (将来)**:
+    - `interface` を小さく定義し、構造体の役割を明確にする。
+    - `struct` タグを活用し、JSON等の入出力形式を明示する。
+- **TypeScriptの場合 (将来)**:
+    - `Zod` 等で実行時バリデーションを行う。
 
-    # GOOD (LLM knows exactly what to return)
-    def get_data(user_id: str) -> UserProfile | None: ...
-    ```
+### 1.2 自己文書化コード (Self-Documenting Code)
+- **Docstrings/Comments**:
+    - 関数の中身を書く**前**に、Docstring（プロンプト）を書くフローを推奨します。
+    - LLMは関数名とDocstringを見て、実装を補完します。
 
-### 1.2 "Self-Documenting" Code
-- **Docstrings**: Write docstrings *before* the function body. This serves as a prompt for the LLM to complete the implementation.
-- **Variable Names**: Use descriptive names (`user_id_str` vs `uid`). LLMs rely heavily on semantic naming to infer intent.
+## 2. テスト戦略: "Test-Driven Generation (TDG) with Interactive Hearing"
 
-## 2. Testing Strategy: "The Agent's Reality Check"
+人間が全てのテストコードを書く必要はありません。
+重要なのは、**「何が正解か（テストケース）」をAIと合意すること**です。
 
-LLMs cannot "run" code in their head perfectly. Tests serve as the external reality check.
+### 2.1 TDGの実践フロー
+このプロジェクトでは、以下のサイクルで開発を進めることを推奨します。
 
-### 2.1 Test-Driven Generation (TDG)
-Instead of "Code then Test", prefer:
-1. **Human**: Write the test case (or ask LLM to write it based on Spec).
-2. **LLM**: Write implementation to pass the test.
-3. **Agent**: Run test. If fail, analyze error, fix code.
+1. **Scaffold (足場作り)**:
+    - AI: `SPEC.md` を元に、「テストシナリオのリスト（日本語）」を提示する。
+    - Human: シナリオを確認し、不足があれば指摘する（例: 「ネットワークエラー時のテストが足りないよ」）。
 
-### 2.2 Mocking External Dependencies
-- **Constraint**: LLMs often hallucinate API responses.
-- **Solution**: Explicitly provide example API responses (JSON) in the prompt or test files.
-- **Rule**: All external I/O (HTTP, DB) must be mocked. This allows the LLM to iterate rapidly without hitting rate limits or needing real credentials.
+2. **Test Generation (テスト生成)**:
+    - AI: 合意されたシナリオを元に、失敗するテストコード（Red）を実装する。
+    - **重要**: 実装（本体コード）を書く前に、テストだけをコミットまたは提示し、期待値が合っているか確認する。
 
-## 3. Automation Interface: "Taskfile"
+3. **Implementation (実装)**:
+    - AI: テストをパスする最小限の実装（Green）を行う。
 
-The AI Agent (and the Human) needs a deterministic way to perform development tasks without memorizing complex flags. We use `go-task` (Taskfile.yml).
+4. **Refactoring**:
+    - AI & Human: コードを整理し、可読性を高める。テストがガードレールとなり、安全にリファクタリングできる。
 
-### 3.1 Standard Tasks
-The Agent should be able to rely on these commands existing:
+### 2.2 テスト生成ツールの可能性
+将来的に、この「ヒアリング → テスト生成」のプロセス自体を自動化ツール（CLI/Web）として切り出すことも検討しています。
+AIエージェントは、常に**「テストを書くための情報は揃っているか？」**を自問し、不足があれば人間にヒアリングを行う姿勢を持ってください。
 
-- `task setup`: Prepare the environment.
-- `task test`: Run verification.
-- `task lint`: Check code style.
-- **`task check`**: The "Gold Standard". Runs format -> lint -> type-check -> test.
-    - **Agent Rule**: Always run `task check` before declaring a task complete.
+### 2.3 外部依存のモック化
+AIエージェントが試行錯誤する際、実際のAPIを叩くとレート制限にかかったり、データが汚染されたりします。
+- **原則**: 開発・テスト時の外部I/O（HTTP, DB）はすべてモック可能にする。
+- **Dependency Injection**: コンストラクタでAPIクライアント等を注入する設計にする（PythonでもGoでも共通のベストプラクティス）。
 
-### 3.2 Error Feedback Loop
-When `task check` fails, the output is the feedback mechanism for the LLM.
-- **Lint Errors**: LLM fixes syntax/style.
-- **Type Errors (mypy)**: LLM fixes logical inconsistencies.
-- **Test Failures**: LLM fixes implementation bugs.
+## 3. 自動化インターフェース: "Taskfile"
 
-## 4. Project Structure (Scale-Dependent)
+言語やフレームワークが増えても（Python, Go, Node.js）、**「AIエージェントへの命令」は統一**します。
+私たちは `go-task` (Taskfile) を標準インターフェースとして採用します。
 
-Organize files so the LLM can easily find context.
+### 3.1 標準タスク定義
+言語に関わらず、以下のコマンドが動作するように `Taskfile.yml` を維持してください。
 
-### Level 1: Simple Script
-```
-project/
-├── main.py        # Logic + CLI
-├── test_main.py   # One file to verify everything
-└── Taskfile.yml   # Simple run/test commands
-```
+- `task setup`: 依存関係のインストール、環境構築。
+- `task test`: テストの実行。
+- `task lint`: コードスタイルのチェック。
+- `task check`: **品質保証の決定版**。Lint, Type-Check, Testを一括実行。
+    - **ルール**: AIエージェントは、作業完了宣言の前に必ず `task check` をパスさせなければならない。
 
-### Level 2: Standard Application (This Template)
-```
-project/
-├── app_name/
-│   ├── main.py    # Entry point
-│   ├── core/      # Business Logic (Pure Python, high test coverage)
-│   └── cli.py     # Typer/Click definitions
-├── tests/         # Mirrors source structure
-├── providers.yml  # Configuration (Logic separated from Settings)
-├── Taskfile.yml   # Full automation
-└── pyproject.toml # Dependencies
-```
+## 4. 技術スタック別ガイドライン
 
-### Level 3: Large System
-Separate "Interface" from "Implementation" to help the LLM focus.
-```
-project/
-├── src/
-│   ├── domain/    # Abstract Base Classes (The "Contract")
-│   ├── infra/     # Concrete Implementations (The "Details")
-│   └── app/       # Application Service
-├── tests/
-│   ├── unit/
-│   └── integration/
-├── docs/
-│   ├── SPEC.md
-│   └── ARCHITECTURE.md
-└── Taskfile.yml
-```
+プロジェクトのフェーズや要件に応じて、適切なスタックを選択します。
+
+### A. Python CLI (Current Default)
+現在の `llminfo-cli` などの開発標準です。
+- **Core**: Typer, Pydantic, HTTPX
+- **Testing**: Pytest, Pytest-Asyncio, Pytest-Mock
+- **Lint/Format**: Ruff, Mypy
+
+### B. Python Web/Server (Future)
+データ処理やAPIサーバー向け。
+- **Core**: FastAPI
+- **Interface**: OpenAPI (schema-first development)
+
+### C. Golang / High Performance (Future)
+バイナリ配布や高並行処理が必要な場合。
+- **Project Layout**: `Standard Go Project Layout` (cmd/, internal/, pkg/)
+- **Core**: Cobra (CLI), Echo/Gin (Web)
+- **Lint**: golangci-lint
