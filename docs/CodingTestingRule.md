@@ -11,6 +11,7 @@
 - **非同期ファイル操作 (aiofiles)**: 非同期でのファイル読み書き
 
 ### 1.2 開発依存関係
+- **タスクランナー (go-task)**: セットアップ、テスト、リンター等のタスク自動化
 - **テストフレームワーク (pytest)**: 単体テストと統合テスト
 - **非同期テスト (pytest-asyncio)**: 非同期関数のテストサポート
 - **モッキング (pytest-mock)**: 外部依存のモック化
@@ -20,18 +21,11 @@
 ### 1.3 パッケージ構造
 ```
 llminfo_cli/
-├── __init__.py
-├── main.py              # CLIエントリーポイント
-├── providers/           # プロバイダーモジュール
-│   ├── __init__.py      # ファクトリー
-│   ├── base.py          # 抽象ベースクラス (Provider)
-│   ├── generic.py       # 汎用実装 (GenericProvider)
-│   ├── openrouter.py    # 具体的な実装 (OpenRouterProvider)
-│   └── parsers.py       # パーサー実装 (ResponseParser)
-├── cache.py             # キャッシュ管理
-├── schemas.py           # データモデル (ModelInfo, CreditInfo)
-├── validators.py        # 設定バリデーション
-└── errors.py            # カスタム例外クラス
+├── ... (ソースコード)
+├── Taskfile.yml         # タスク定義ファイル
+├── pyproject.toml       # プロジェクト設定・依存関係
+├── providers.yml        # プロバイダー設定
+└── tests/               # テストコード
 ```
 
 ## 2. コーディング標準
@@ -218,8 +212,47 @@ providers:
 Python 3.11以降の機能（`Self`型、例外グループなど）は、`typing_extensions` バックポートを利用するか、バージョンチェックを行った上で使用する。
 
 ## 9. 開発フロー
-1. 機能要件の確認 (`docs/SPEC.md`)
-2. 実装 (`llminfo_cli/`)
-3. 単体テスト作成 (`tests/`)
-4. 統合テスト実行 (ローカルで `.env.test` を使用)
-5. `ruff check .` および `mypy .` の通過確認
+
+
+
+### 9.1 タスク自動化 (Taskfile)
+
+プロジェクトのセットアップ、テスト、静的解析などはすべて `task` コマンドを通じて実行することを原則とします。
+
+
+
+#### 主要なタスク
+
+- **セットアップ**: `task setup` (仮想環境の作成と依存関係のインストール)
+
+- **テスト実行**: 
+
+  - 全テスト: `task test`
+
+  - 単体テストのみ: `task test-unit`
+
+  - 統合テスト: `task test-integration` (要 `dotenvx`)
+
+- **静的解析**:
+
+  - リンター確認: `task lint`
+
+  - 自動修正: `task lint-fix`
+
+  - 型チェック: `task type-check`
+
+- **一括チェック**: `task check` (lint, type-check, testを順に実行)
+
+- **クリーンアップ**: `task clean` (一時ファイルやキャッシュの削除)
+
+
+
+### 9.2 推奨される開発サイクル
+
+1. **初期化**: `task setup`
+
+2. **実装**: `llminfo_cli/` 以下のコードを変更
+
+3. **検証**: `task check` で静的解析とテストが通過することを確認
+
+4. **提出**: 全てのチェックが通過した状態でコミット/プッシュ
