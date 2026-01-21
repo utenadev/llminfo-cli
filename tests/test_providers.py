@@ -2,7 +2,6 @@
 
 import pytest
 import httpx
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from llminfo_cli.providers import get_provider, get_providers

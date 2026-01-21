@@ -1,6 +1,5 @@
 """Tests for error classes"""
 
-import pytest
 
 from llminfo_cli.errors import (
     LLMInfoError,
