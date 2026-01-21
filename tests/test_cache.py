@@ -1,6 +1,5 @@
 """Tests for cache functionality"""
 
-import json
 import pytest
 from datetime import datetime, timedelta
 
@@ -46,15 +45,16 @@ async def test_cache_expiration(cache_manager):
     await cache_manager.set("test_provider", models)
 
     cache_file = cache_manager._get_cache_file("test_provider")
-    async with aiofiles.open(cache_file, 'r') as f:
+    async with aiofiles.open(cache_file, "r") as f:
         import json
+
         cache_content = await f.read()
         cache_data = json.loads(cache_content)
 
     expired_time = datetime.now() - timedelta(hours=2)
     cache_data["cached_at"] = expired_time.isoformat()
 
-    async with aiofiles.open(cache_file, 'w') as f:
+    async with aiofiles.open(cache_file, "w") as f:
         await f.write(json.dumps(cache_data))
 
     cached_models = await cache_manager.get("test_provider")

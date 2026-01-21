@@ -1,9 +1,7 @@
 """Tests for JSON output format validation"""
 
 import json
-from unittest.mock import patch, MagicMock
 from typer.testing import CliRunner
-from llminfo_cli.main import app
 
 runner = CliRunner()
 

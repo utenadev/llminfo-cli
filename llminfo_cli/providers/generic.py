@@ -65,23 +65,22 @@ class GenericProvider(Provider):
             if status_code == 401:
                 raise AuthenticationError(
                     f"Authentication failed for provider {self.provider_name_value}",
-                    provider=self.provider_name_value
+                    provider=self.provider_name_value,
                 ) from e
             elif status_code == 429:
                 raise RateLimitError(
                     f"Rate limit exceeded for provider {self.provider_name_value}",
-                    provider=self.provider_name_value
+                    provider=self.provider_name_value,
                 ) from e
             else:
                 raise APIError(
                     f"API request failed with status {status_code} for provider {self.provider_name_value}",
                     status_code=status_code,
-                    provider=self.provider_name_value
+                    provider=self.provider_name_value,
                 ) from e
         except httpx.RequestError as e:
             raise NetworkError(
-                f"Network error occurred for provider {self.provider_name_value}",
-                original_error=e
+                f"Network error occurred for provider {self.provider_name_value}", original_error=e
             ) from e
 
     async def get_credits(self) -> Optional[CreditInfo]:
@@ -109,23 +108,22 @@ class GenericProvider(Provider):
             if status_code == 401:
                 raise AuthenticationError(
                     f"Authentication failed for provider {self.provider_name_value}",
-                    provider=self.provider_name_value
+                    provider=self.provider_name_value,
                 ) from e
             elif status_code == 429:
                 raise RateLimitError(
                     f"Rate limit exceeded for provider {self.provider_name_value}",
-                    provider=self.provider_name_value
+                    provider=self.provider_name_value,
                 ) from e
             else:
                 raise APIError(
                     f"API request failed with status {status_code} for provider {self.provider_name_value}",
                     status_code=status_code,
-                    provider=self.provider_name_value
+                    provider=self.provider_name_value,
                 ) from e
         except httpx.RequestError as e:
             raise NetworkError(
-                f"Network error occurred for provider {self.provider_name_value}",
-                original_error=e
+                f"Network error occurred for provider {self.provider_name_value}", original_error=e
             ) from e
 
     @property

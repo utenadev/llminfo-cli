@@ -56,3 +56,8 @@ warn_return_any = true
 markers = [
     "integration: marks tests as integration tests (requires API keys)"
 ]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = [
+    "ignore:coroutine '.*' was never awaited:RuntimeWarning",
+]

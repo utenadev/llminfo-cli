@@ -31,7 +31,7 @@ class CacheManager:
         if not cache_file.exists():
             return None
 
-        async with aiofiles.open(cache_file, 'r') as f:
+        async with aiofiles.open(cache_file, "r") as f:
             cache_content = await f.read()
             cache_data = json.loads(cache_content)
 
@@ -51,7 +51,7 @@ class CacheManager:
             "models": [m.model_dump() for m in models],
         }
 
-        async with aiofiles.open(cache_file, 'w') as f:
+        async with aiofiles.open(cache_file, "w") as f:
             await f.write(json.dumps(cache_data, indent=2))
 
     async def invalidate(self, provider_name: str) -> None:

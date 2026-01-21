@@ -7,7 +7,6 @@ import sys
 from pathlib import Path
 from typing import Dict, Optional
 
-import httpx
 import typer
 import yaml
 from rich.console import Console
@@ -18,7 +17,7 @@ from llminfo_cli.providers.parsers import OpenAICompatibleParser, OpenRouterPars
 from llminfo_cli.providers.generic import GenericProvider
 from llminfo_cli.validators import validate_provider_config
 from llminfo_cli.schemas import ModelInfo
-from llminfo_cli.errors import APIError, NetworkError, AuthenticationError, RateLimitError
+from llminfo_cli.errors import APIError, NetworkError
 
 # Configure logging
 logging.basicConfig(
