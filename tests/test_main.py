@@ -1,7 +1,10 @@
 """Tests for CLI main module"""
 
 import httpx
-from unittest.mock import patch, MagicMock
+import pytest
+import yaml
+from pathlib import Path
+from unittest.mock import patch, MagicMock, AsyncMock
 from typer.testing import CliRunner
 from llminfo_cli.main import app
 
@@ -230,3 +233,134 @@ def test_credits_command_network_error():
         result = runner.invoke(app, ["credits", "--provider", "test"])
         assert result.exit_code == 1
         assert "Error" in result.output
+
+
+# Tests for helper functions
+
+
+def test_handle_command_error_value_error():
+    """Test handle_command_error with ValueError"""
+    from llminfo_cli.main import handle_command_error
+
+    with patch("llminfo_cli.main.sys.exit") as mock_exit:
+        error = ValueError("Invalid value")
+        handle_command_error(error, "test_command")
+        mock_exit.assert_called_once_with(1)
+
+
+def test_handle_command_error_api_error():
+    """Test handle_command_error with APIError"""
+    from llminfo_cli.main import handle_command_error
+    from llminfo_cli.errors import APIError
+
+    with patch("llminfo_cli.main.sys.exit") as mock_exit:
+        error = APIError("API error", status_code=500)
+        handle_command_error(error, "test_command")
+        mock_exit.assert_called_once_with(1)
+
+
+def test_handle_command_error_api_error_without_status():
+    """Test handle_command_error with APIError without status code"""
+    from llminfo_cli.main import handle_command_error
+    from llminfo_cli.errors import APIError
+
+    with patch("llminfo_cli.main.sys.exit") as mock_exit:
+        error = APIError("API error", status_code=None)
+        handle_command_error(error, "test_command")
+        mock_exit.assert_called_once_with(1)
+
+
+def test_handle_command_error_network_error():
+    """Test handle_command_error with NetworkError"""
+    from llminfo_cli.main import handle_command_error
+    from llminfo_cli.errors import NetworkError
+
+    with patch("llminfo_cli.main.sys.exit") as mock_exit:
+        error = NetworkError("Network error")
+        handle_command_error(error, "test_command")
+        mock_exit.assert_called_once_with(1)
+
+
+def test_handle_command_error_generic_exception():
+    """Test handle_command_error with generic Exception"""
+    from llminfo_cli.main import handle_command_error
+
+    with patch("llminfo_cli.main.sys.exit") as mock_exit:
+        error = Exception("Generic error")
+        handle_command_error(error, "test_command")
+        mock_exit.assert_called_once_with(1)
+
+
+def test_load_and_validate_config_valid():
+    """Test load_and_validate_config with valid file"""
+    from llminfo_cli.main import load_and_validate_config
+    from pathlib import Path
+    import tempfile
+    import yaml
+
+    config_data = {
+        "name": "test",
+        "base_url": "https://api.test.com",
+        "api_key_env": "TEST_API_KEY",
+        "models_endpoint": "/models",
+        "parser": "openai_compatible",
+    }
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as f:
+        yaml.dump(config_data, f)
+        f.flush()
+        temp_path = Path(f.name)
+
+    try:
+        result = load_and_validate_config(temp_path)
+        assert result == config_data
+    finally:
+        temp_path.unlink()
+
+
+def test_load_and_validate_config_file_not_found():
+    """Test load_and_validate_config with non-existent file"""
+    from llminfo_cli.main import load_and_validate_config
+    from pathlib import Path
+
+    with pytest.raises(ValueError, match="Plugin file not found"):
+        load_and_validate_config(Path("/nonexistent/file.yml"))
+
+
+def test_load_and_validate_config_invalid_yaml():
+    """Test load_and_validate_config with invalid YAML"""
+    from llminfo_cli.main import load_and_validate_config
+    from pathlib import Path
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as f:
+        f.write("invalid:\n  - unclosed list")
+        f.flush()
+        temp_path = Path(f.name)
+
+    try:
+        with pytest.raises(ValueError):
+            load_and_validate_config(temp_path)
+    finally:
+        temp_path.unlink()
+
+
+def test_credits_cli_command_none():
+    """Test CLI credits command with None credits"""
+    result = runner.invoke(app, ["credits", "--provider", "openrouter"])
+    assert result.exit_code == 0
+
+
+def test_models_cli_command_force():
+    """Test CLI models command with force flag"""
+    with (
+        patch("llminfo_cli.main.get_provider") as mock_get_provider,
+        patch("llminfo_cli.main.asyncio.run") as mock_asyncio_run,
+    ):
+        mock_provider = MagicMock()
+        mock_provider.provider_name = "test"
+        mock_provider.get_models = MagicMock()
+        mock_get_provider.return_value = mock_provider
+
+        result = runner.invoke(app, ["list", "models", "--provider", "test", "--force"])
+        assert result.exit_code == 0
