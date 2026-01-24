@@ -48,6 +48,38 @@ llminfo
 #   llminfo credits --provider openrouter  # Check credits
 ```
 
+### Common Usage Examples
+
+**List all available models from all providers:**
+```bash
+llminfo list models
+```
+
+**List models from a specific provider:**
+```bash
+llminfo list models --provider openrouter
+llminfo list models --provider groq
+llminfo list models --provider cerebras
+llminfo list models --provider mistral
+```
+
+**Get output in JSON format (useful for scripting):**
+```bash
+llminfo list models --json
+llminfo credits --provider openrouter --json
+```
+
+**Force refresh to bypass cache and get latest data:**
+```bash
+llminfo list models --force
+llminfo credits --provider openrouter --force
+```
+
+**Check credit balance:**
+```bash
+llminfo credits --provider openrouter  # Only OpenRouter currently supports this
+```
+
 ### List Models
 
 List models from all or specified providers.
@@ -98,10 +130,30 @@ provider = GenericProvider(
 - **Network Errors**: Check internet connection and API endpoints
 - **Rate Limiting**: Wait before retrying or check API limits
 - **Cache Issues**: Use `--force` flag to bypass cache
+- **Permission Denied**: Make sure you have proper permissions to access API endpoints
+
+**Detailed Error Messages:**
+
+- **401 Unauthorized**: Usually indicates an invalid or missing API key. Double-check your environment variables.
+- **429 Too Many Requests**: You've hit the rate limit. Wait before making more requests.
+- **Network Error**: Check your internet connection and firewall settings.
 
 **Debugging:**
 
 Check `llminfo.log` for detailed error information and API call logs.
+
+**Getting More Information:**
+
+You can use the `--help` flag with any command to get detailed usage information:
+
+```bash
+llminfo --help                    # General help
+llminfo credits --help            # Credits command help
+llminfo list --help               # List command help
+llminfo list models --help        # List models help
+llminfo test-provider --help      # Test provider help
+llminfo import-provider --help    # Import provider help
+```
 
 ## Caching
 
