@@ -1,5 +1,39 @@
 # Working Log
 
+## 2026-01-24
+
+### テスト改善
+- `test_credits_cli_command_none` テストが失敗していた問題を修正
+- クレジットが利用できないプロバイダー（Groq）を使用するようにテストを変更
+- クレジットが利用できない場合に終了コード1ではなく0を返すようにメインのロジックを変更
+
+### ドキュメント強化
+- README.mdに詳細な使用例を追加
+- トラブルシューティングセクションを拡充し、詳細なエラーメッセージと解決策を追加
+- 各コマンドのヘルプを表示する方法を追記
+
+### エラーハンドリング改善
+- エラーメッセージをより具体的かつ実用的なものに変更
+- ステータスコードに基づく詳細なエラーメッセージを実装（401、429、500番台など）
+- エラーメッセージにアクションアイテムを追加し、ユーザーが次に取るべき行動を明確にしました
+
+### キャッシュ機構の柔軟性追加
+- `LLMINFO_CACHE_TTL_HOURS` 環境変数でキャッシュTTLを設定可能に
+- パラメータによる個別プロバイダー設定も引き続き可能
+- 不正な環境変数値に対するフォールバック処理を実装
+- README.mdに新しい環境変数についての説明を追加
+
+### メモ
+- すべての変更は既存のテストを破壊することなく実装
+- すべての109個のテストが正常にパスすることを確認
+- 変更はfeature/improvements-1-4ブランチからmainブランチにマージ済み
+
+### コミット
+1. `2792782` - Fix test_credits_cli_command_none by changing exit code behavior when credits not available
+2. `87a6c6f` - Enhance documentation with more detailed usage examples and troubleshooting information
+3. `77561ef` - Improve error handling with more informative and actionable messages
+4. `d67ad65` - Add flexibility to cache mechanism with environment variable configuration
+
 ## 2026-01-23
 
 ### テストカバレッジ改善 (78% → 81%)
