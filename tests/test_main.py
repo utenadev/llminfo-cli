@@ -206,8 +206,9 @@ def test_credits_command_http_401():
         patch("llminfo_cli.main.asyncio.run") as mock_asyncio_run,
     ):
         mock_provider = MagicMock()
-        mock_provider.get_credits.side_effect = httpx.HTTPStatusError(
-            "Unauthorized", request=MagicMock(), response=MagicMock(status_code=401)
+        from llminfo_cli.errors import AuthenticationError
+        mock_provider.get_credits.side_effect = AuthenticationError(
+            "Authentication failed for provider test", provider="test"
         )
         mock_get_provider.return_value = mock_provider
 
@@ -215,7 +216,7 @@ def test_credits_command_http_401():
 
         result = runner.invoke(app, ["credits", "--provider", "test"])
         assert result.exit_code == 1
-        assert "Error" in result.output
+        assert "Authentication failed" in result.output
 
 
 def test_credits_command_network_error():
@@ -225,14 +226,15 @@ def test_credits_command_network_error():
         patch("llminfo_cli.main.asyncio.run") as mock_asyncio_run,
     ):
         mock_provider = MagicMock()
-        mock_provider.get_credits.side_effect = httpx.RequestError("Connection error")
+        from llminfo_cli.errors import NetworkError
+        mock_provider.get_credits.side_effect = NetworkError("Connection error")
         mock_get_provider.return_value = mock_provider
 
         mock_asyncio_run.side_effect = lambda coroutine: coroutine.send(None)
 
         result = runner.invoke(app, ["credits", "--provider", "test"])
         assert result.exit_code == 1
-        assert "Error" in result.output
+        assert "Network error" in result.output
 
 
 # Tests for helper functions

@@ -53,18 +53,37 @@ def handle_command_error(error: Exception, command_name: str) -> None:
     """
     if isinstance(error, ValueError):
         logger.error(f"{command_name} failed: {error}")
-        typer.echo(str(error), err=True)
+        typer.echo(f"Value error: {error}", err=True)
         typer.echo("\nRun 'llminfo --help' to see available commands.", err=True)
     elif isinstance(error, APIError):
         logger.error(f"API error in {command_name}: {error.status_code}")
-        error_msg = f"API error: {error.status_code}" if error.status_code else f"API error: {error}"
-        typer.echo(error_msg, err=True)
+
+        # Provide more specific error messages based on status code
+        if error.status_code == 401:
+            typer.echo("Authentication failed: Invalid or missing API key.", err=True)
+            typer.echo("Please check your API key configuration.", err=True)
+            if hasattr(error, 'provider') and error.provider:
+                typer.echo(f"Provider: {error.provider}", err=True)
+                typer.echo(f"Make sure the environment variable for {error.provider.upper()}_API_KEY is set correctly.", err=True)
+        elif error.status_code == 429:
+            typer.echo("Rate limit exceeded: Too many requests.", err=True)
+            typer.echo("Please wait before making more requests.", err=True)
+        elif error.status_code == 404:
+            typer.echo("Resource not found: The requested resource does not exist.", err=True)
+        elif error.status_code is not None and error.status_code >= 500:
+            typer.echo(f"Server error ({error.status_code}): The provider's server encountered an error.", err=True)
+            typer.echo("Please try again later.", err=True)
+        else:
+            error_msg = f"API error ({error.status_code}): {str(error)}" if error.status_code is not None else f"API error: {str(error)}"
+            typer.echo(error_msg, err=True)
     elif isinstance(error, NetworkError):
         logger.error(f"Network error in {command_name}: {error}")
         typer.echo(f"Network error: {error}", err=True)
+        typer.echo("Please check your internet connection and firewall settings.", err=True)
     else:
         logger.error(f"Error in {command_name}: {error}")
-        typer.echo(f"Error: {error}", err=True)
+        typer.echo(f"Unexpected error: {error}", err=True)
+        typer.echo("Please check the log file 'llminfo.log' for more details.", err=True)
     sys.exit(1)
 
 
