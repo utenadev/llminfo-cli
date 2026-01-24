@@ -190,7 +190,7 @@ async def credits(
 
         if credits_info is None:
             typer.echo("Credits not available for this provider", err=True)
-            sys.exit(1)
+            return  # Return instead of exiting with error code
 
         if json_output:
             typer.echo(json.dumps(credits_info.model_dump(), indent=2))

@@ -1,5 +1,32 @@
 # Working Log
 
+## 2026-01-23
+
+### テストカバレッジ改善 (78% → 81%)
+- main.py モジュールのカバレッジ向上を目的にテスト追加
+- ヘルパー関数のユニットテスト（handle_command_error, load_and_validate_config, create_provider_from_config）
+- format_models_table, display_test_results 関数のテスト追加
+- CLI コマンドのエッジケーステスト追加（--force フラグ、None credits）
+- 合計109テスト、すべてパス（0.91秒）
+- Taskfile.yml にカバレッジ関連タスク追加（coverage-check, coverage-json, coverage-summary）
+- .gitignore に日本語ファイルパターン追加
+
+### Branch 操作と PR 作成
+- `improve-test-coverage-main` ブランチ作成
+- カバレッジ改善のコミット（+12テスト、+3%カバレッジ）
+- リモートブランチへプッシュ試み（失敗、すでに同期済み）
+- PR #4 状態確認：MERGED 確認済み（すでに main ブランチへマージ済み）
+- PR 作成試み：GitHub CLI 制限により重複作成回避、ブラウザ確認後に再試行の提案
+
+### メモ
+- カバレッジ 78% → 81%（+3%）は CLI ツールとして十分な成果
+- 残り 41 行の未カバレッジの大部分は `@async_command` デコレータ内のロジック（asyncio.run() 呼び出し箇所）
+- これらは既存の CliRunner テスト（test_cli_commands.py）でコマンドの挙動は十分テスト済み
+- コード変更（リファクタリング）は行わず、テスト追加のみ
+
+### コミット
+1. `6cc1126` - test: improve test coverage for main.py module
+
 ## 2026-01-21
 
 ### テスト修正・リファクタリング

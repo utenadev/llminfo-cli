@@ -346,8 +346,8 @@ def test_load_and_validate_config_invalid_yaml():
 
 
 def test_credits_cli_command_none():
-    """Test CLI credits command with None credits"""
-    result = runner.invoke(app, ["credits", "--provider", "openrouter"])
+    """Test CLI credits command with None credits (using a provider that doesn't support credits)"""
+    result = runner.invoke(app, ["credits", "--provider", "groq"])  # groq doesn't support credits
     assert result.exit_code == 0
 
 
