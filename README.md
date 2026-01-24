@@ -159,6 +159,11 @@ llminfo import-provider --help    # Import provider help
 
 Model lists are cached for 1 hour by default. Cache is stored in `~/.cache/llminfo/`.
 
+You can configure the cache TTL (time-to-live) using the environment variable:
+```bash
+export LLMINFO_CACHE_TTL_HOURS=2  # Sets cache TTL to 2 hours
+```
+
 To force refresh from API and ignore cache:
 ```bash
 llminfo list models --force

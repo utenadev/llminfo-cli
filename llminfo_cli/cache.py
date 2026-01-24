@@ -14,11 +14,29 @@ class CacheManager:
     """Manage provider model caches"""
 
     CACHE_DIR = Path.home() / ".cache" / "llminfo"
-    DEFAULT_CACHE_TTL = timedelta(hours=1)
+    DEFAULT_CACHE_TTL_HOURS = 1
 
-    def __init__(self, ttl_hours: int = 1):
+    def __init__(self, ttl_hours: int = None):
         self.CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        self.CACHE_TTL = timedelta(hours=ttl_hours)
+
+        # Allow TTL to be configured via parameter first, then environment variable, with fallback to default
+        if ttl_hours is not None:
+            # Use the provided parameter value
+            self.CACHE_TTL = timedelta(hours=ttl_hours)
+        else:
+            # Check for environment variable
+            import os
+            env_ttl = os.environ.get('LLMINFO_CACHE_TTL_HOURS')
+            if env_ttl is not None:
+                try:
+                    env_ttl_int = int(env_ttl)
+                    self.CACHE_TTL = timedelta(hours=env_ttl_int)
+                except ValueError:
+                    # If environment variable is invalid, use default
+                    self.CACHE_TTL = timedelta(hours=self.DEFAULT_CACHE_TTL_HOURS)
+            else:
+                # Use default
+                self.CACHE_TTL = timedelta(hours=self.DEFAULT_CACHE_TTL_HOURS)
 
     def _get_cache_file(self, provider_name: str) -> Path:
         """Get cache file path for provider"""
